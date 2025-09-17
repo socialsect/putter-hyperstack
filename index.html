@@ -644,7 +644,7 @@
                         <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 10.5V7a2 2 0 00-2-2H5C3.895 5 3 5.895 3 7v10a2 2 0 002 2h10a2 2 0 002-2v-3.5l4 4v-11l-4 4z"></path></svg>
                         Original Video
                     </h3>
-                    <video id="originalVideo" controls style="display: none;"></video>
+                    <video id="originalVideo" controls playsinline muted autoplay style="display: none;"></video>
                     <canvas id="frameCanvas" style="display: none;"></canvas>
                 </div>
 
@@ -822,7 +822,19 @@
                     this.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
                     this.video.srcObject = this.cameraStream;
                     this.video.style.display = 'block';
-                    await this.video.play();
+                    // iOS requires playsinline + muted + user gesture; ensure play attempt and fallback
+                    try {
+                        await this.video.play();
+                    } catch (e) {
+                        const playOnTouch = () => {
+                            this.video.play().finally(() => {
+                                document.removeEventListener('touchend', playOnTouch);
+                                document.removeEventListener('click', playOnTouch);
+                            });
+                        };
+                        document.addEventListener('touchend', playOnTouch, { once: true });
+                        document.addEventListener('click', playOnTouch, { once: true });
+                    }
 
                     // Setup canvas sizes from video once metadata is ready
                     if (this.video.videoWidth === 0) {
