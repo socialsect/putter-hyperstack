@@ -76,6 +76,11 @@
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
+        /* Icon helpers */
+        .icon { width: 1em; height: 1em; vertical-align: -0.15em; margin-right: 6px; display: inline-block; }
+        .icon.red { color: #cb0000; }
+        .icon.white { color: #ffffff; }
+
         .file-input-label:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
@@ -536,7 +541,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚡ Ultra-Fast Video Object Detection</h1>
+            <h1>
+                <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z"></path>
+                </svg>
+                Ultra-Fast Video Object Detection
+            </h1>
             <p>Maximum performance with minimal latency</p>
         </div>
 
@@ -545,15 +555,34 @@
                 <div class="file-input-wrapper">
                     <input type="file" id="videoInput" class="file-input" accept="video/*">
                     <label for="videoInput" class="file-input-label">
-                        📁 Choose Video File
+                        <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM13 9V3.5L18.5 9H13z"></path>
+                        </svg>
+                        Choose Video File
                     </label>
                 </div>
                 
                 <div class="controls">
-                    <button id="startBtn" class="btn btn-primary" disabled>▶️ Start Processing</button>
-                    <button id="pauseBtn" class="btn btn-secondary" disabled>⏸️ Pause</button>
-                    <button id="stopBtn" class="btn btn-secondary" disabled>⏹️ Stop</button>
-                    <button id="streamBtn" class="btn btn-success" disabled>🌊 Stream Mode</button>
+                    <button id="startBtn" class="btn btn-primary" disabled>
+                        <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+                        Start Processing
+                    </button>
+                    <button id="pauseBtn" class="btn btn-secondary" disabled>
+                        <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+                        Pause
+                    </button>
+                    <button id="stopBtn" class="btn btn-secondary" disabled>
+                        <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 6h12v12H6z"></path></svg>
+                        Stop
+                    </button>
+                    <button id="streamBtn" class="btn btn-success" disabled>
+                        <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 12c0-4.418 3.582-8 8-8v3l5-4-5-4v3C6.477 2 2 6.477 2 12s4.477 10 10 10v-2C7.582 20 4 16.418 4 12z"></path></svg>
+                        Stream Mode
+                    </button>
+                    <button id="cameraBtn" class="btn btn-success">
+                        <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20 5h-3.586l-1.707-1.707A.996.996 0 0014 3H10a.996.996 0 00-.707.293L7.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2zm-8 12a5 5 0 110-10 5 5 0 010 10z"></path></svg>
+                        Use Camera
+                    </button>
                 </div>
 
                 <div class="progress-bar">
@@ -611,13 +640,19 @@
 
             <div class="video-container">
                 <div class="video-section">
-                    <h3>📹 Original Video</h3>
+                    <h3>
+                        <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17 10.5V7a2 2 0 00-2-2H5C3.895 5 3 5.895 3 7v10a2 2 0 002 2h10a2 2 0 002-2v-3.5l4 4v-11l-4 4z"></path></svg>
+                        Original Video
+                    </h3>
                     <video id="originalVideo" controls style="display: none;"></video>
                     <canvas id="frameCanvas" style="display: none;"></canvas>
                 </div>
 
                 <div class="video-section">
-                    <h3>🔍 Processed Frames</h3>
+                    <h3>
+                        <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4a6 6 0 104.472 10.028l4.25 4.25 1.414-1.414-4.25-4.25A6 6 0 0010 4zm0 2a4 4 0 110 8 4 4 0 010-8z"></path></svg>
+                        Processed Frames
+                    </h3>
                     <canvas id="processedCanvas"></canvas>
                 </div>
             </div>
@@ -628,7 +663,10 @@
             </div>
 
             <div class="results-section">
-                <h3>🎯 Detection Results</h3>
+                <h3>
+                    <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1010 10A10.011 10.011 0 0012 2zm1 15h-2v-2h2zm0-4h-2V7h2z"></path></svg>
+                    Detection Results
+                </h3>
                 <div id="detectionResults" class="detection-results">
                     <p style="text-align: center; color: #666; font-style: italic;">
                         Upload a video and start processing to see detection results here
@@ -638,7 +676,10 @@
 
             <!-- Trajectory Analysis Panel -->
             <div class="trajectory-panel">
-                <h3>📈 Trajectory Analysis</h3>
+                <h3>
+                    <svg class="icon white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h2v16h16v2H3z"></path><path d="M7 13l3-3 4 4 6-6 1.414 1.414L14 17l-4-4-2.293 2.293z"></path></svg>
+                    Trajectory Analysis
+                </h3>
                 <div id="trajectoryAnalysis">
                     <div class="arc-classification">
                         <div class="arc-type">No trajectory data yet</div>
@@ -674,7 +715,10 @@
 
             <!-- Center Line Controls -->
             <div class="center-line-controls">
-                <h4>🎯 Center Line Reference</h4>
+                <h4>
+                    <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2v20M2 12h20" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                    Center Line Reference
+                </h4>
                 <button class="center-line-btn" onclick="setAutoCenterLine()">Auto Calculate</button>
                 <button class="center-line-btn" onclick="setManualCenterLine()">Set Manually</button>
                 <button class="center-line-btn" onclick="clearCenterLine()">Clear</button>
@@ -685,7 +729,10 @@
 
             <!-- Session Controls -->
             <div class="session-controls">
-                <h4>📊 Session Management</h4>
+                <h4>
+                    <svg class="icon red" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8v-10h-8v10zm0-18v6h8V3h-8z"></path></svg>
+                    Session Management
+                </h4>
                 <button class="session-btn" onclick="getTrajectorySummary()">View Summary</button>
                 <button class="session-btn" onclick="exportTrajectoryData()">Export Data</button>
                 <button class="session-btn danger" onclick="clearSession()">Clear Session</button>
@@ -697,7 +744,7 @@
     </div>
 
     <script>
-        const BASE_URL = 'https://f4d308ab4412.ngrok-free.app';
+       const BASE_URL = 'https://f4d308ab4412.ngrok-free.app';
 
         class UltraFastVideoProcessor {
             constructor() {
@@ -706,6 +753,7 @@
                 this.processedCanvas = document.getElementById('processedCanvas');
                 this.frameCtx = this.frameCanvas.getContext('2d');
                 this.processedCtx = this.processedCanvas.getContext('2d');
+                this.cameraStream = null;
                 
                 this.isProcessing = false;
                 this.isPaused = false;
@@ -754,6 +802,7 @@
                 document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
                 document.getElementById('stopBtn').addEventListener('click', () => this.stopProcessing());
                 document.getElementById('streamBtn').addEventListener('click', () => this.startStreaming());
+                document.getElementById('cameraBtn').addEventListener('click', () => this.startCamera());
                 
                 // Endpoint selection
                 document.querySelectorAll('.endpoint-btn').forEach(btn => {
@@ -765,6 +814,75 @@
                         this.showStatus(`Switched to ${target.textContent.trim()} mode`, 'info');
                     });
                 });
+            }
+
+            async startCamera() {
+                try {
+                    // Request camera stream
+                    this.cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                    this.video.srcObject = this.cameraStream;
+                    this.video.style.display = 'block';
+                    await this.video.play();
+
+                    // Setup canvas sizes from video once metadata is ready
+                    if (this.video.videoWidth === 0) {
+                        await new Promise(resolve => this.video.addEventListener('loadedmetadata', resolve, { once: true }));
+                    }
+                    this.setupCanvas();
+
+                    // For live camera we don't know duration/frames
+                    this.totalFrames = Infinity; // sentinel for live
+                    document.getElementById('totalFramesDisplay').textContent = '∞';
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('streamBtn').disabled = true;
+                    document.getElementById('pauseBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = false;
+                    this.isProcessing = true;
+                    this.isPaused = false;
+                    this.currentFrameIndex = 0;
+                    this.startTime = Date.now();
+                    this.frameCount = 0;
+                    this.showStatus('Camera started. Processing live frames...', 'success');
+
+                    // Start capture loop
+                    this.processCameraFrames();
+                } catch (err) {
+                    console.error('Camera access error:', err);
+                    this.showStatus('Unable to access camera. Check permissions/HTTPS.', 'error');
+                }
+            }
+
+            async processCameraFrames() {
+                while (this.isProcessing && !this.isPaused && this.cameraStream) {
+                    const frameStartTime = Date.now();
+                    // Draw current video frame to canvas
+                    this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
+                    const blob = await this.canvasToBlob(this.frameCanvas);
+
+                    try {
+                        const result = await this.sendFrameToBackend(blob, this.currentEndpoint);
+                        const latency = Date.now() - frameStartTime;
+                        this.updateLatencyStats(latency);
+                        this.displayResults(result);
+                        if (result.annotated_image) {
+                            this.displayProcessedFrame(result.annotated_image);
+                        }
+                    } catch (error) {
+                        console.error('Camera frame processing error:', error);
+                    }
+
+                    this.currentFrameIndex++;
+                    this.frameCount++;
+                    // For live mode, progress bar can show activity pulse
+                    const fill = document.getElementById('progressFill');
+                    const width = (this.currentFrameIndex % 100) + 1;
+                    fill.style.width = `${width}%`;
+                    this.updateFrameCounter();
+                    this.updateStats();
+
+                    // Aim for ~15 FPS processing, adapt as needed
+                    await new Promise(resolve => setTimeout(resolve, 66));
+                }
             }
 
             async startPerformanceMonitoring() {
@@ -1187,10 +1305,10 @@
                 const pauseBtn = document.getElementById('pauseBtn');
                 
                 if (this.isPaused) {
-                    pauseBtn.textContent = '▶️ Resume';
+                    pauseBtn.textContent = 'Resume';
                     this.showStatus('Processing paused', 'info');
                 } else {
-                    pauseBtn.textContent = '⏸️ Pause';
+                    pauseBtn.textContent = 'Pause';
                     this.showStatus('Resuming processing...', 'info');
                     if (this.currentEndpoint === 'detect_stream') {
                         this.processFramesStreaming();
@@ -1203,6 +1321,11 @@
             stopProcessing() {
                 this.isProcessing = false;
                 this.isPaused = false;
+                if (this.cameraStream) {
+                    this.cameraStream.getTracks().forEach(t => t.stop());
+                    this.cameraStream = null;
+                    this.video.srcObject = null;
+                }
                 
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
