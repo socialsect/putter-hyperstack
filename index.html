@@ -213,7 +213,7 @@
     </style>
     <script>
         // Use current domain for production, or set your actual domain
-        const BASE_URL = "https://cdf49d5a74d5.ngrok-free.app";
+        const BASE_URL = "https://bf3bdbb7c596.ngrok-free.app";
         // Alternative: const BASE_URL = "https://your-actual-domain.com";
     </script>
 </head>
@@ -376,13 +376,8 @@
                                 // Small pause to let user see path (mobile-friendly)
                                 await new Promise(r => setTimeout(r, 1200));
                                 this.clearOverlay();
-                                // Redraw reference line after clearing putt path
-                                this.drawReferenceLine(data.center_line);
-                            }
-                            
-                            // Update reference line if center line data is available
-                            if (data.center_line) {
-                                this.drawReferenceLine(data.center_line);
+                                // Redraw enforced reference line after clearing putt path
+                                this.drawReferenceLine();
                             }
                             if (data.state === 'completed') {
                                 this.setStatus('3 putts completed — Analysis ready', 'completed');
@@ -474,85 +469,81 @@
                 this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
             }
 
-            // Draw reference line to help users position their putter
-            drawReferenceLine(centerLine = null) {
+            // Draw enforced reference line to help users position their putter
+            drawReferenceLine() {
                 if (!this.previewCanvas) return;
                 
                 const ctx = this.previewCtx;
                 const canvas = this.previewCanvas;
-                const lineWidth = 2;
-                const dashLength = 20;
-                const gapLength = 10;
+                
+                // Fixed reference line - always vertical, centered
+                const centerX = canvas.width * 0.5;
+                const startY = 50;
+                const endY = canvas.height - 50;
+                const centerY = canvas.height / 2;
                 
                 ctx.save();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.lineWidth = lineWidth;
-                ctx.setLineDash([dashLength, gapLength]);
                 
-                let startX, startY, endX, endY, centerX, centerY;
+                // Draw main reference line - RED DOTTED
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)'; // Red color
+                ctx.lineWidth = 3;
+                ctx.setLineDash([15, 10]); // Dotted pattern
                 
-                if (centerLine && centerLine.start_x && centerLine.end_x) {
-                    // Use backend-calculated center line (scaled to canvas)
-                    const scaleX = canvas.width / (centerLine.analysis_size?.w || 416);
-                    const scaleY = canvas.height / (centerLine.analysis_size?.h || 416);
-                    
-                    startX = centerLine.start_x * scaleX;
-                    startY = centerLine.start_y * scaleY;
-                    endX = centerLine.end_x * scaleX;
-                    endY = centerLine.end_y * scaleY;
-                    
-                    // Calculate center point for marker
-                    centerX = (startX + endX) / 2;
-                    centerY = (startY + endY) / 2;
-                } else {
-                    // Fallback to center of screen (original behavior)
-                    centerX = canvas.width * 0.5;
-                    startX = centerX;
-                    startY = 50;
-                    endX = centerX;
-                    endY = canvas.height - 50;
-                    centerY = canvas.height / 2;
-                }
-                
-                // Draw main reference line
                 ctx.beginPath();
-                ctx.moveTo(startX, startY);
-                ctx.lineTo(endX, endY);
+                ctx.moveTo(centerX, startY);
+                ctx.lineTo(centerX, endY);
                 ctx.stroke();
                 
-                // Draw center marker
+                // Draw center marker - prominent red circle
                 ctx.setLineDash([]);
-                ctx.strokeStyle = 'rgba(34, 197, 94, 0.9)';
-                ctx.fillStyle = 'rgba(34, 197, 94, 0.9)';
-                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(220, 38, 38, 1.0)';
+                ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.lineWidth = 4;
                 
-                // Center circle
+                // Center circle - larger and more prominent
                 ctx.beginPath();
-                ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+                ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Add inner white dot for better visibility
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Add text label
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.font = 'bold 14px system-ui';
+                // Add instruction text
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.font = 'bold 16px system-ui';
                 ctx.textAlign = 'center';
-                ctx.fillText('Position putter here', centerX, centerY - 20);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.lineWidth = 3;
+                ctx.strokeText('POSITION PUTTER HERE', centerX, centerY - 25);
+                ctx.fillText('POSITION PUTTER HERE', centerX, centerY - 25);
                 
-                // Add start and end markers
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-                ctx.lineWidth = 2;
+                // Add start and end markers - red
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.lineWidth = 3;
                 ctx.setLineDash([]);
                 
-                // Start marker
+                // Start marker (top)
                 ctx.beginPath();
-                ctx.moveTo(startX - 15, startY);
-                ctx.lineTo(startX + 15, startY);
+                ctx.moveTo(centerX - 20, startY);
+                ctx.lineTo(centerX + 20, startY);
                 ctx.stroke();
                 
-                // End marker
+                // End marker (bottom)
                 ctx.beginPath();
-                ctx.moveTo(endX - 15, endY);
-                ctx.lineTo(endX + 15, endY);
+                ctx.moveTo(centerX - 20, endY);
+                ctx.lineTo(centerX + 20, endY);
                 ctx.stroke();
+                
+                // Add directional arrows
+                ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.font = 'bold 12px system-ui';
+                ctx.textAlign = 'center';
+                ctx.fillText('↑', centerX, startY - 10);
+                ctx.fillText('↓', centerX, endY + 15);
                 
                 ctx.restore();
             }
