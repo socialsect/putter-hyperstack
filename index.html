@@ -213,7 +213,7 @@
     </style>
     <script>
         // Use current domain for production, or set your actual domain
-        const BASE_URL = "https://bf3bdbb7c596.ngrok-free.app";
+        const BASE_URL = "https://eff1590f769e.ngrok-free.app";
         // Alternative: const BASE_URL = "https://your-actual-domain.com";
     </script>
 </head>
@@ -349,6 +349,9 @@
 
                         // show local preview
                         this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                        
+                        // Always draw the reference line on top of the live feed
+                        this.drawReferenceLine();
 
                         // send to backend
                         try {
@@ -467,6 +470,8 @@
             clearOverlay() {
                 // redraw live frame to clear overlay next iteration; here we just clear
                 this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                // Redraw the reference line immediately after clearing
+                this.drawReferenceLine();
             }
 
             // Draw enforced reference line to help users position their putter
