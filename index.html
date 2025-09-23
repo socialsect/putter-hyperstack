@@ -48,8 +48,11 @@
             grid-template-columns: 1fr 1fr;
             gap: 16px;
         }
+
         @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
+            .grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .card {
@@ -83,6 +86,7 @@
             overflow: hidden;
             background: #000;
         }
+
         .stage video,
         .stage canvas {
             position: absolute;
@@ -93,6 +97,7 @@
             object-fit: cover;
             border-radius: 0;
         }
+
         .controls-floating {
             position: absolute;
             bottom: 12px;
@@ -104,6 +109,7 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .pill-badge {
             position: absolute;
             top: 12px;
@@ -115,6 +121,7 @@
             font-size: 12px;
             font-weight: 700;
         }
+
         .status-floating {
             position: absolute;
             top: 12px;
@@ -124,6 +131,60 @@
             padding: 8px 10px;
             border-radius: 8px;
             font-weight: 700;
+        }
+
+        /* Putt completion overlay */
+        .putt-complete-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 180ms ease, transform 220ms ease;
+            z-index: 5;
+        }
+
+        .putt-complete-overlay.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .putt-complete-badge {
+            background: rgba(34, 197, 94, 0.94);
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 999px;
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45);
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: 0.4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .putt-complete-badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+            animation: pulse 900ms ease-out 2;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
         }
 
         .controls {
@@ -210,10 +271,141 @@
             background: #fee2e2;
             color: #b91c1c;
         }
+
+        /* Results modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal {
+            background: #0f172a;
+            color: #e2e8f0;
+            width: min(920px, 92vw);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #111827;
+            border-bottom: 1px solid #1f2937;
+        }
+
+        .modal-title {
+            font-weight: 800;
+            font-size: 18px;
+        }
+
+        .modal-body {
+            padding: 16px 20px;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .metric .name {
+            color: #cbd5e1;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .metric .value {
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .bar {
+            height: 10px;
+            background: #1f2937;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar>span {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            width: 0%;
+            transition: width .6s ease;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .badge-good {
+            background: #14532d;
+            color: #22c55e;
+        }
+
+        .badge-excellent {
+            background: #1e3a8a;
+            color: #60a5fa;
+        }
+
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #1f2937;
+            display: flex;
+            justify-content: flex-end;
+            background: #0b1220;
+        }
+
+        .close-btn {
+            background: #2563eb;
+            color: #fff;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+        }
     </style>
     <script>
         // Use current domain for production, or set your actual domain
-        const BASE_URL = "https://2c86ec90e8c3.ngrok-free.app";
+        const BASE_URL = "https://a5e7ddca0036.ngrok-free.app";
         // Alternative: const BASE_URL = "https://your-actual-domain.com";
     </script>
 </head>
@@ -233,6 +425,8 @@
                         <canvas id="previewCanvas"></canvas>
                         <div class="pill-badge" id="sessionBadge">Idle</div>
                         <div class="status-floating" id="statusFloating">Ready</div>
+                        <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
+                            role="status"></div>
                         <div class="controls-floating">
                             <div style="display:flex; gap:8px;">
                                 <button id="cameraBtn" class="btn-success">Use Camera</button>
@@ -248,6 +442,25 @@
                     <div class="putts" id="putts"></div>
                     <div id="summary" style="margin-top:12px"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div id="resultsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
+        <div class="modal">
+            <div class="modal-header">
+                <div id="resultsTitle" class="modal-title">Session Results</div>
+                <button id="closeResults" class="close-btn" aria-label="Close">Close</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-grid">
+                    <div class="panel" id="resultsLeft"></div>
+                    <div class="panel" id="resultsRight"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeResults2" class="close-btn">Done</button>
             </div>
         </div>
     </div>
@@ -269,6 +482,14 @@
                 this.stage = document.getElementById('stage');
                 this.sessionBadge = document.getElementById('sessionBadge');
                 this.statusFloating = document.getElementById('statusFloating');
+                this.puttCompleteEl = document.getElementById('puttComplete');
+                this.resultsModal = document.getElementById('resultsModal');
+                this.resultsLeft = document.getElementById('resultsLeft');
+                this.resultsRight = document.getElementById('resultsRight');
+                const closeA = document.getElementById('closeResults');
+                const closeB = document.getElementById('closeResults2');
+                if (closeA) closeA.onclick = () => this.hideResults();
+                if (closeB) closeB.onclick = () => this.hideResults();
 
                 this.sessionId = null;
                 this.stream = null;
@@ -375,7 +596,14 @@
                             this.renderResults(data);
                             // If a putt just completed, draw the overlay path and pause momentarily
                             if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                                this.drawPathOverlay(data.path_points, data.analysis_size);
+                                // Announce completion visually and with light haptics
+                                this.showPuttComplete((data.putts || []).length);
+                                // Prefer sticker overlay using cropped images if provided
+                                if (data.path_images && data.path_images.length) {
+                                    await this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
+                                } else {
+                                    this.drawPathOverlay(data.path_points, data.analysis_size);
+                                }
                                 // Small pause to let user see path (mobile-friendly)
                                 await new Promise(r => setTimeout(r, 1200));
                                 this.clearOverlay();
@@ -388,6 +616,7 @@
                                 document.getElementById('stopBtn').disabled = true;
                                 document.getElementById('startBtn').disabled = false;
                                 if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
+                                this.showSessionResults(data);
                             }
                         } catch (e) {
                             console.error(e);
@@ -435,6 +664,25 @@
                 `;
             }
 
+            // Show a brief animated overlay when a putt completes
+            showPuttComplete(puttNumber) {
+                if (!this.puttCompleteEl) return;
+                const n = puttNumber || 1;
+                this.puttCompleteEl.innerHTML = `
+                    <div class="putt-complete-badge">
+                        <span class="dot"></span>
+                        Putt ${n} completed
+                    </div>
+                `;
+                this.puttCompleteEl.classList.add('show');
+                // Light haptic feedback on supported devices
+                try { if (navigator.vibrate) navigator.vibrate(40); } catch (_) { }
+                clearTimeout(this._puttHideT);
+                this._puttHideT = setTimeout(() => {
+                    this.puttCompleteEl.classList.remove('show');
+                }, 1200);
+            }
+
             // Draw path overlay onto preview canvas using returned analysis coordinates
             drawPathOverlay(points, analysisSize) {
                 if (!analysisSize) return;
@@ -465,6 +713,47 @@
                     this.previewCtx.fill();
                 }
                 this.previewCtx.restore();
+            }
+
+            // Draw stickers (cropped object images) along the path
+            async drawStickerOverlay(points, images, analysisSize) {
+                if (!analysisSize || !images || !images.length) return;
+                const sx = this.previewCanvas.width / analysisSize.w;
+                const sy = this.previewCanvas.height / analysisSize.h;
+                const ctx = this.previewCtx;
+                const maxStickers = 24; // throttle visuals
+                const step = Math.max(1, Math.floor(points.length / maxStickers));
+                for (let i = 0, idx = 0; i < points.length && idx < images.length; i += step, idx += step) {
+                    const imgSrc = images[idx];
+                    if (!imgSrc) continue;
+                    const px = points[i].x * sx;
+                    const py = points[i].y * sy;
+                    try {
+                        const img = await this.loadImage(imgSrc);
+                        // Draw centered at point, clamp size for readability
+                        const maxDim = Math.min(this.previewCanvas.width, this.previewCanvas.height) * 0.12;
+                        const scale = Math.min(maxDim / Math.max(img.width, img.height), 1.0);
+                        const w = Math.max(16, img.width * scale);
+                        const h = Math.max(16, img.height * scale);
+                        const x = Math.round(px - w / 2);
+                        const y = Math.round(py - h / 2);
+                        if (x + w > 0 && y + h > 0 && x < this.previewCanvas.width && y < this.previewCanvas.height) {
+                            ctx.save();
+                            ctx.globalAlpha = 0.9;
+                            ctx.drawImage(img, x, y, w, h);
+                            ctx.restore();
+                        }
+                    } catch {}
+                }
+            }
+
+            loadImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = src;
+                });
             }
 
             clearOverlay() {
@@ -566,10 +855,79 @@
                 // Redraw reference line when stopping
                 this.drawReferenceLine();
             }
-        }
 
+            // ----- Results Modal -----
+            showSessionResults(data) {
+                if (!this.resultsModal) return;
+                const putts = data.putts || [];
+                const total = putts.length;
+                const avgArc = data.average_arc_type || '—';
+                const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
+
+                // Left panel: chart-like summary and per-putt details
+                const leftParts = [];
+                leftParts.push(`<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-weight:800; font-size:16px; color:#fff;">Overview</div>
+                    <span class="badge badge-excellent">Target 3 • Count ${total}</span>
+                </div>`);
+                leftParts.push(`<div class="metric"><span class="name">Average Arc</span><span class="value">${avgArc}</span></div>`);
+                leftParts.push(`<div class="metric"><span class="name">Average Confidence</span><span class="value">${avgConf}</span></div>`);
+
+                // Build per-putt metrics (degrees)
+                for (let i = 0; i < putts.length; i++) {
+                    const p = putts[i];
+                    const confPct = p.confidence != null ? (p.confidence * 100).toFixed(0) : 0;
+                    const avgAng = (p.avg_angle_deg || 0).toFixed(1);
+                    const maxAng = (p.max_angle_deg || 0).toFixed(1);
+                    const stabAng = (p.angle_stability_deg || 0).toFixed(1);
+                    const pts = p.point_count || 0;
+                    leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>
+                            <span class="badge badge-good">${(p.arc_type || '—').toString()}</span>
+                        </div>
+                        <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
+                        <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
+                        <div class="metric"><span class="name">Avg Angle</span><span class="value">${avgAng}°</span></div>
+                        <div class="metric"><span class="name">Max Angle</span><span class="value">${maxAng}°</span></div>
+                        <div class="metric"><span class="name">Stability</span><span class="value">±${stabAng}°</span></div>
+                        <div class="metric"><span class="name">Points</span><span class="value">${pts}</span></div>
+                        ${p.reasoning ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${p.reasoning}</div>` : ''}
+                    </div>`);
+                }
+
+                this.resultsLeft.innerHTML = leftParts.join('');
+
+                // Right panel: angle gauges
+                const avgOfAvg = (putts.reduce((a, p) => a + (p.avg_angle_deg || 0), 0) / Math.max(1, putts.length));
+                const maxOfMax = putts.reduce((a, p) => Math.max(a, (p.max_angle_deg || 0)), 0);
+                const avgStability = (putts.reduce((a,p)=>a+(p.angle_stability_deg||0),0) / Math.max(1, putts.length));
+                const scale = (v, max)=> Math.max(0, Math.min(100, (v / max) * 100));
+                const rawImg = data.first_frame_image;
+                const imgSrc = rawImg ? String(rawImg).replace(/^["']+|["']+$/g, '') : null;
+
+                
+                this.resultsRight.innerHTML = `
+                    <div style=\"font-weight:800; color:#e5e7eb; margin-bottom:8px;\">Angles</div>
+                    <div class=\"metric\"><span class=\"name\">Average Angle</span><span class=\"value\">${avgOfAvg.toFixed(1)}°</span></div>
+                    <div class=\"bar\"><span style=\"width:${scale(avgOfAvg, 30)}%\"></span></div>
+                    <div class=\"metric\"><span class=\"name\">Max Angle</span><span class=\"value\">${maxOfMax.toFixed(1)}°</span></div>
+                    <div class=\"bar\"><span style=\"width:${scale(maxOfMax, 60)}%\"></span></div>
+                    <div class=\"metric\"><span class=\"name\">Stability (σ)</span><span class=\"value\">±${avgStability.toFixed(1)}°</span></div>
+                    <div class=\"bar\"><span style=\"width:${scale(avgStability, 20)}%\"></span></div>
+                    ${imgSrc ? `<div style=\"margin-top:12px\"><div class=\"metric\"><span class=\"name\">First Frame</span><span class=\"value\"></span></div><img src=\"${imgSrc}\" alt=\"First frame\" style=\"width:100%; border-radius:8px; border:1px solid #1f2937;\"/></div>` : ''}
+                    <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
+                        <span class=\"badge badge-excellent\">Average: ${avgArc}</span>
+                        <span class=\"badge badge-good\">Putts ${total}/3</span>
+                    </div>
+                `;
+                this.resultsModal.classList.add('show');
+            }
+            hideResults() {
+                if (this.resultsModal) this.resultsModal.classList.remove('show');
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => new PuttUI());
     </script>
 </body>
-
 </html>
