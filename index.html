@@ -294,6 +294,9 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
         }
 
         .modal-header {
@@ -303,6 +306,10 @@
             padding: 16px 20px;
             background: #111827;
             border-bottom: 1px solid #1f2937;
+            flex: 0 0 auto;
+            position: sticky;
+            top: 0;
+            z-index: 2;
         }
 
         .modal-title {
@@ -312,6 +319,9 @@
 
         .modal-body {
             padding: 16px 20px;
+            overflow: auto;
+            max-height: calc(90vh - 120px);
+            flex: 1 1 auto;
         }
 
         .modal-grid {
@@ -391,6 +401,10 @@
             display: flex;
             justify-content: flex-end;
             background: #0b1220;
+            flex: 0 0 auto;
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
         }
 
         .close-btn {
@@ -401,6 +415,27 @@
             border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
+        }
+
+        .modal-body img { max-width: 100%; height: auto; display: block; }
+
+        /* Mobile full-screen modal */
+        @media (max-width: 600px) {
+            .modal-backdrop { padding: 0; }
+            .modal {
+                width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            .modal-header { padding: 12px 14px; }
+            .modal-title { font-size: 16px; }
+            .modal-body { padding: 12px 14px; max-height: calc(100vh - 112px); }
+            .modal-footer { padding: 10px 14px; }
+            .close-btn { width: 100%; }
+            .panel { padding: 10px; }
+            .metric .name { font-size: 13px; }
+            .metric .value { font-size: 14px; }
         }
     </style>
     <script>
@@ -904,7 +939,7 @@
                 const avgStability = (putts.reduce((a,p)=>a+(p.angle_stability_deg||0),0) / Math.max(1, putts.length));
                 const scale = (v, max)=> Math.max(0, Math.min(100, (v / max) * 100));
                 const rawImg = data.first_frame_image;
-                const imgSrc = rawImg ? String(rawImg).replace(/^["']+|["']+$/g, '') : null;
+                const imgSrc = rawImg ? String(rawImg).replace(/^[\"']+|[\"']+$/g, '') : null;
 
                 
                 this.resultsRight.innerHTML = `
@@ -915,12 +950,16 @@
                     <div class=\"bar\"><span style=\"width:${scale(maxOfMax, 60)}%\"></span></div>
                     <div class=\"metric\"><span class=\"name\">Stability (σ)</span><span class=\"value\">±${avgStability.toFixed(1)}°</span></div>
                     <div class=\"bar\"><span style=\"width:${scale(avgStability, 20)}%\"></span></div>
-                    ${imgSrc ? `<div style=\"margin-top:12px\"><div class=\"metric\"><span class=\"name\">First Frame</span><span class=\"value\"></span></div><img src=\"${imgSrc}\" alt=\"First frame\" style=\"width:100%; border-radius:8px; border:1px solid #1f2937;\"/></div>` : ''}
+                    ${imgSrc ? `<div style=\\"margin-top:12px\\"><div class=\\"metric\\"><span class=\\"name\\">First Frame</span><span class=\\"value\\"></span></div><img class=\\"first-frame\\" alt=\\"First frame\\" style=\\"width:100%; border-radius:8px; border:1px solid #1f2937;\\"/></div>` : ''}
                     <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
                         <span class=\"badge badge-excellent\">Average: ${avgArc}</span>
                         <span class=\"badge badge-good\">Putts ${total}/3</span>
                     </div>
                 `;
+                if (imgSrc) {
+                    const imgEl = this.resultsRight.querySelector('img.first-frame');
+                    if (imgEl) imgEl.src = imgSrc;
+                }
                 this.resultsModal.classList.add('show');
             }
             hideResults() {
