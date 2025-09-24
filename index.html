@@ -440,7 +440,7 @@
     </style>
     <script>
         // Use current domain for production, or set your actual domain
-        const BASE_URL = "http://localhost:8000";
+        const BASE_URL = "https://fc7520950399.ngrok-free.app";
         // Alternative: const BASE_URL = "https://your-actual-domain.com";
     </script>
 </head>
@@ -952,7 +952,7 @@
                 const avgArc = data.average_arc_type || '—';
                 const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
 
-                // Left panel: chart-like summary and per-putt details
+                // Left panel: chart-like summary and per-putt details (angles removed)
                 const leftParts = [];
                 leftParts.push(`<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                     <div style="font-weight:800; font-size:16px; color:#fff;">Overview</div>
@@ -961,13 +961,10 @@
                 leftParts.push(`<div class="metric"><span class="name">Average Arc</span><span class="value">${avgArc}</span></div>`);
                 leftParts.push(`<div class="metric"><span class="name">Average Confidence</span><span class="value">${avgConf}</span></div>`);
 
-                // Build per-putt metrics (degrees)
+                // Build per-putt mini-cards (angles removed)
                 for (let i = 0; i < putts.length; i++) {
                     const p = putts[i];
                     const confPct = p.confidence != null ? (p.confidence * 100).toFixed(0) : 0;
-                    const avgAng = (p.avg_angle_deg || 0).toFixed(1);
-                    const maxAng = (p.max_angle_deg || 0).toFixed(1);
-                    const stabAng = (p.angle_stability_deg || 0).toFixed(1);
                     const pts = p.point_count || 0;
                     leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
                         <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -976,9 +973,6 @@
                         </div>
                         <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
                         <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
-                        <div class="metric"><span class="name">Avg Angle</span><span class="value">${avgAng}°</span></div>
-                        <div class="metric"><span class="name">Max Angle</span><span class="value">${maxAng}°</span></div>
-                        <div class="metric"><span class="name">Stability</span><span class="value">±${stabAng}°</span></div>
                         <div class="metric"><span class="name">Points</span><span class="value">${pts}</span></div>
                         ${p.reasoning ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${p.reasoning}</div>` : ''}
                     </div>`);
@@ -986,21 +980,11 @@
 
                 this.resultsLeft.innerHTML = leftParts.join('');
 
-                // Right panel: angle gauges
-                const avgOfAvg = (putts.reduce((a, p) => a + (p.avg_angle_deg || 0), 0) / Math.max(1, putts.length));
-                const maxOfMax = putts.reduce((a, p) => Math.max(a, (p.max_angle_deg || 0)), 0);
-                const avgStability = (putts.reduce((a,p)=>a+(p.angle_stability_deg||0),0) / Math.max(1, putts.length));
-                const scale = (v, max)=> Math.max(0, Math.min(100, (v / max) * 100));
+                // Right panel: remove angle gauges; keep only the result image and summary chips
                 const imgSrc = null; // First frame removed from UI
                 
                 this.resultsRight.innerHTML = `
-                    <div style=\"font-weight:800; color:#e5e7eb; margin-bottom:8px;\">Angles</div>
-                    <div class=\"metric\"><span class=\"name\">Average Angle</span><span class=\"value\">${avgOfAvg.toFixed(1)}°</span></div>
-                    <div class=\"bar\"><span style=\"width:${scale(avgOfAvg, 30)}%\"></span></div>
-                    <div class=\"metric\"><span class=\"name\">Max Angle</span><span class=\"value\">${maxOfMax.toFixed(1)}°</span></div>
-                    <div class=\"bar\"><span style=\"width:${scale(maxOfMax, 60)}%\"></span></div>
-                    <div class=\"metric\"><span class=\"name\">Stability (σ)</span><span class=\"value\">±${avgStability.toFixed(1)}°</span></div>
-                    <div class=\"bar\"><span style=\"width:${scale(avgStability, 20)}%\"></span></div>
+                    <div style=\"font-weight:800; color:#e5e7eb; margin-bottom:8px;\">Result</div>
                     
                     ${data.result_image ? `<div style="margin-top:12px"><div class="metric"><span class="name">Result Image</span><span class="value"></span></div><img class="result-frame" alt="Result frame" style="width:100%; border-radius:8px; border:1px solid #1f2937;"/></div>` : ''}
                     <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
