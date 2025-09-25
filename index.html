@@ -440,7 +440,7 @@
     </style>
     <script>
         // Use current domain for production, or set your actual domain
-        const BASE_URL = "https://0406848ed411.ngrok-free.app";
+        const BASE_URL = "https://6fe967a3d885.ngrok-free.app";
         // Alternative: const BASE_URL = "https://your-actual-domain.com";
     </script>
 </head>
@@ -601,7 +601,7 @@
                     // draw frame
                     if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
                         this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/png'));
+                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.7));
 
                         // show local preview
                         this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
@@ -642,7 +642,7 @@
                                 }
                                 // Capture the last visible frame (with overlays) as a JPEG for the modal
                                 try {
-                                    const dataUrl = this.previewCanvas.toDataURL('image/png');
+                                    const dataUrl = this.previewCanvas.toDataURL('image/jpeg', 0.9);
                                     if (dataUrl && dataUrl.startsWith('data:image')) {
                                         data.result_image = dataUrl;
                                         try { window.__lastData = data; } catch (_) {}
