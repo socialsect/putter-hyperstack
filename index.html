@@ -667,7 +667,7 @@
                                         if (composed) data.result_image = composed;
                                     }
                                 } catch(_) {}
-                                this.showSessionResults(data);
+                                await this.showSessionResults(data);
                             }
                         } catch (e) {
                             console.error(e);
@@ -1081,7 +1081,7 @@
             }
 
             // ----- Results Modal -----
-            showSessionResults(data) {
+            async showSessionResults(data) {
                 if (!this.resultsModal) return;
                 const putts = data.putts || [];
                 const total = putts.length;
