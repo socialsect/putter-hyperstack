@@ -772,8 +772,8 @@
                 const sx = this.previewCanvas.width / analysisSize.w;
                 const sy = this.previewCanvas.height / analysisSize.h;
                 const ctx = this.previewCtx;
-                const maxStickers = 24; // throttle visuals
-                const step = Math.max(1, Math.floor(points.length / maxStickers));
+                // Draw ALL stickers - no throttling
+                const step = 1;
                 for (let i = 0, idx = 0; i < points.length && idx < images.length; i += step, idx += step) {
                     const imgSrc = images[idx];
                     if (!imgSrc) continue;
@@ -790,7 +790,7 @@
                         const y = Math.round(py - h / 2);
                         if (x + w > 0 && y + h > 0 && x < this.previewCanvas.width && y < this.previewCanvas.height) {
                             ctx.save();
-                            ctx.globalAlpha = 0.9;
+                            ctx.globalAlpha = 0.5;
                             ctx.drawImage(img, x, y, w, h);
                             ctx.restore();
                         }
@@ -866,8 +866,8 @@
                     const imgs = putt.path_images || [];
                     const boxes = putt.path_boxes || [];
                     
-                    // Use every 3rd point to avoid overcrowding
-                    const step = Math.max(1, Math.floor(pts.length / 20));
+                    // Draw ALL points - no skipping
+                    const step = 1;
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const imgSrc = imgs[i];
@@ -886,7 +886,7 @@
                                 const h = img.height * scale;
                                 
                                 // Draw with slight transparency and border
-                                ctx.globalAlpha = 0.8;
+                                ctx.globalAlpha = 0.5;
                                 ctx.drawImage(img, px - w/2, py - h/2, w, h);
                                 
                                 // Add a subtle border
@@ -944,8 +944,8 @@
                 const sy = off.height / analysisSize.h;
                 
                 ctx.save();
-                // Use every 5th point to avoid overcrowding for single putt
-                const step = Math.max(1, Math.floor(points.length / 15));
+                // Draw ALL points - no skipping
+                const step = 1;
                 for (let i = 0; i < points.length; i += step) {
                     const point = points[i];
                     const imgSrc = images && images[i];
