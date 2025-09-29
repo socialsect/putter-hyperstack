@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Putter Arc Analyzer (WebSocket)</title>
+    <title>Putter Arc Analyzer ()</title>
     <style>
         * {
             box-sizing: border-box;
@@ -76,6 +76,7 @@
             aspect-ratio: 16/9;
         }
 
+        /* Fullscreen camera stage with overlayed UI */
         .stage {
             position: relative;
             width: 100%;
@@ -132,27 +133,58 @@
             font-weight: 700;
         }
 
-        .status {
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
+        /* Putt completion overlay */
+        .putt-complete-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 180ms ease, transform 220ms ease;
+            z-index: 5;
         }
 
-        .status.waiting {
-            background: #eff6ff;
-            color: #1e40af;
+        .putt-complete-overlay.show {
+            opacity: 1;
+            transform: scale(1);
         }
 
-        .status.detecting {
-            background: #fef9c3;
-            color: #854d0e;
+        .putt-complete-badge {
+            background: rgba(34, 197, 94, 0.94);
+            color: #fff;
+            padding: 14px 18px;
+            border-radius: 999px;
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45);
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: 0.4px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .status.completed {
-            background: #dcfce7;
-            color: #14532d;
+        .putt-complete-badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
+            animation: pulse 900ms ease-out 2;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
         }
 
         .controls {
@@ -183,6 +215,29 @@
         .btn-danger {
             background: #dc2626;
             color: #fff;
+        }
+
+        .status {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status.waiting {
+            background: #eff6ff;
+            color: #1e40af;
+        }
+
+        .status.detecting {
+            background: #fef9c3;
+            color: #854d0e;
+        }
+
+        .status.completed {
+            background: #dcfce7;
+            color: #14532d;
         }
 
         .putts {
@@ -217,7 +272,7 @@
             color: #b91c1c;
         }
 
-        /* Modal */
+        /* Results modal */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -269,6 +324,77 @@
             flex: 1 1 auto;
         }
 
+        .modal-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .metric .name {
+            color: #cbd5e1;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .metric .value {
+            color: #fff;
+            font-weight: 900;
+        }
+
+        .bar {
+            height: 10px;
+            background: #1f2937;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar>span {
+            display: block;
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #16a34a);
+            width: 0%;
+            transition: width .6s ease;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .badge-good {
+            background: #14532d;
+            color: #22c55e;
+        }
+
+        .badge-excellent {
+            background: #1e3a8a;
+            color: #60a5fa;
+        }
+
         .modal-footer {
             padding: 12px 20px;
             border-top: 1px solid #1f2937;
@@ -290,11 +416,36 @@
             font-weight: 700;
             cursor: pointer;
         }
+
+        .modal-body img { max-width: 100%; height: auto; display: block; }
+
+        /* Mobile full-screen modal */
+        @media (max-width: 600px) {
+            .modal-backdrop { padding: 0; }
+            .modal {
+                width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            .modal-header { padding: 12px 14px; }
+            .modal-title { font-size: 16px; }
+            .modal-body { padding: 12px 14px; max-height: calc(100vh - 112px); }
+            .modal-footer { padding: 10px 14px; }
+            .close-btn { width: 100%; }
+            .panel { padding: 10px; }
+            .metric .name { font-size: 13px; }
+            .metric .value { font-size: 14px; }
+        }
     </style>
     <script>
-        // Backend WS base can be provided via ?ws=... (e.g., ?ws=wss://bd40993f25d9.ngrok-free.app)
-        // Defaults to your ngrok backend
-        const WS_BASE = new URLSearchParams(location.search).get('ws') || 'wss://bd40993f25d9.ngrok-free.app';
+        // REST base for fallback
+        const BASE_URL = "http://localhost:8000";
+        // Optional WebSocket support via query param
+        const qp = new URLSearchParams(location.search);
+        const wsParam = qp.get('ws');
+        const USE_WS = wsParam && wsParam !== '0';
+        const WS_BASE = typeof wsParam === 'string' && wsParam !== '1' ? wsParam : (location.origin.replace(/^http/, 'ws'));
         const WS_URL = (WS_BASE.replace(/\/$/, '')) + '/ws';
     </script>
 </head>
@@ -302,7 +453,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏌️ Putter Arc Analyzer — 3-Putt (WebSocket)</h1>
+            <h1>🏌️ Putter Arc Analyzer — 3-Putt</h1>
         </div>
         <div class="content">
             <div class="grid">
@@ -314,6 +465,8 @@
                         <canvas id="previewCanvas"></canvas>
                         <div class="pill-badge" id="sessionBadge">Idle</div>
                         <div class="status-floating" id="statusFloating">Ready</div>
+                        <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
+                            role="status"></div>
                         <div class="controls-floating">
                             <div style="display:flex; gap:8px;">
                                 <button id="cameraBtn" class="btn-success">Use Camera</button>
@@ -334,15 +487,17 @@
     </div>
 
     <!-- Results Modal -->
-    <div id="resultsModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div id="resultsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
         <div class="modal">
             <div class="modal-header">
-                <div class="modal-title">Session Results</div>
-                <button id="closeResults" class="close-btn">Close</button>
+                <div id="resultsTitle" class="modal-title">Session Results</div>
+                <button id="closeResults" class="close-btn" aria-label="Close">Close</button>
             </div>
             <div class="modal-body">
-                <div id="resultsLeft"></div>
-                <div id="resultsRight" style="margin-top:12px"></div>
+                <div class="modal-grid">
+                    <div class="panel" id="resultsLeft"></div>
+                    <div class="panel" id="resultsRight"></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button id="closeResults2" class="close-btn">Done</button>
@@ -351,35 +506,45 @@
     </div>
 
     <script>
-        class WSUICtrl {
+        class PuttUI {
             constructor() {
                 this.video = document.getElementById('camera');
                 this.frameCanvas = document.getElementById('frameCanvas');
                 this.previewCanvas = document.getElementById('previewCanvas');
+                
+                if (!this.video || !this.frameCanvas || !this.previewCanvas) {
+                    console.error('Required DOM elements not found');
+                    return;
+                }
+                
                 this.frameCtx = this.frameCanvas.getContext('2d');
                 this.previewCtx = this.previewCanvas.getContext('2d');
+                this.stage = document.getElementById('stage');
                 this.sessionBadge = document.getElementById('sessionBadge');
-                this.statusEl = document.getElementById('status');
                 this.statusFloating = document.getElementById('statusFloating');
+                this.puttCompleteEl = document.getElementById('puttComplete');
                 this.resultsModal = document.getElementById('resultsModal');
                 this.resultsLeft = document.getElementById('resultsLeft');
                 this.resultsRight = document.getElementById('resultsRight');
+                const closeA = document.getElementById('closeResults');
+                const closeB = document.getElementById('closeResults2');
+                if (closeA) closeA.onclick = () => this.hideResults();
+                if (closeB) closeB.onclick = () => this.hideResults();
 
-                this.ws = null;
                 this.sessionId = null;
+                this.stream = null;
                 this.running = false;
-                this.inflight = false;
 
                 document.getElementById('cameraBtn').onclick = () => this.startCamera();
                 document.getElementById('startBtn').onclick = () => this.startSession();
                 document.getElementById('stopBtn').onclick = () => this.stop();
-                document.getElementById('closeResults').onclick = () => this.hideResults();
-                document.getElementById('closeResults2').onclick = () => this.hideResults();
             }
 
             setStatus(text, cls) {
-                this.statusEl.textContent = text;
-                this.statusEl.className = `status ${cls}`;
+                const el = document.getElementById('status');
+                el.textContent = text;
+                el.className = `status ${cls}`;
+                // floating status for fullscreen
                 if (this.statusFloating) this.statusFloating.textContent = text;
             }
 
@@ -389,98 +554,135 @@
                     this.video.srcObject = this.stream;
                     this.video.style.display = 'block';
                     await this.video.play();
+
                     await new Promise(r => this.video.onloadedmetadata = r);
                     this.frameCanvas.width = this.video.videoWidth;
                     this.frameCanvas.height = this.video.videoHeight;
                     this.previewCanvas.width = this.video.videoWidth;
                     this.previewCanvas.height = this.video.videoHeight;
+                    // ensure preview canvas sits above video and fills stage
                     this.previewCanvas.style.display = 'block';
                     this.previewCanvas.style.pointerEvents = 'none';
+                    
+                    // Draw initial reference line
                     this.drawReferenceLine();
+
                     document.getElementById('startBtn').disabled = false;
                     this.setStatus('Camera ready — Start session to analyze', 'waiting');
                     if (this.sessionBadge) this.sessionBadge.textContent = 'Camera Ready';
                 } catch (e) {
+                    console.error(e);
                     this.setStatus('Camera permission denied', 'waiting');
                 }
             }
 
-            openSocket() {
-                this.ws = new WebSocket(WS_URL);
-                this.ws.binaryType = 'arraybuffer';
-                this.ws.onopen = () => {
-                    this.ws.send(JSON.stringify({ type: 'start', user_id: `user_${Date.now()}` }));
-                };
-                this.ws.onmessage = (ev) => this.onMessage(ev);
-                this.ws.onclose = () => { this.ws = null; this.running = false; this.inflight = false; };
-                this.ws.onerror = () => { };
-            }
-
             async startSession() {
-                if (!this.ws) this.openSocket();
-                this.running = true;
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('stopBtn').disabled = false;
-                this.setStatus('Session started — Make your first putt', 'detecting');
-                if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
-                this.loop();
+                try {
+                    const res = await fetch(`${BASE_URL}/putt/start`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: `user_${Date.now()}` })
+                    });
+                    const data = await res.json();
+                    this.sessionId = data.session_id;
+                    this.running = true;
+                    document.getElementById('startBtn').disabled = true;
+                    document.getElementById('stopBtn').disabled = false;
+                    this.setStatus('Session started — Make your first putt', 'detecting');
+                    if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
+                    
+                    // Ensure reference line is visible when starting
+                    this.drawReferenceLine();
+                    
+                    this.loop();
+                } catch (e) {
+                    console.error(e);
+                    this.setStatus('Failed to start session', 'waiting');
+                }
             }
 
             async loop() {
                 while (this.running && this.stream) {
-                    if (!this.ws || this.ws.readyState !== 1) {
-                        await new Promise(r => setTimeout(r, 60));
-                        continue;
-                    }
-                    if (this.inflight) {
-                        await new Promise(r => setTimeout(r, 8));
-                        continue;
-                    }
-                    this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                    const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/webp', 0.55));
-                    if (!blob) { await new Promise(r => setTimeout(r, 16)); continue; }
-                    // local preview
-                    this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
-                    this.drawReferenceLine();
-                    // send
-                    this.inflight = true;
-                    try {
-                        const buf = await blob.arrayBuffer();
-                        this.ws.send(buf);
-                    } catch (_) {
-                        this.inflight = false;
-                    }
-                    await new Promise(r => setTimeout(r, 70));
-                }
-            }
+                    // draw frame
+                    if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
+                        this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
+                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.7));
 
-            onMessage(ev) {
-                try {
-                    const data = JSON.parse(ev.data);
-                    if (data.type === 'started' && data.session_id) {
-                        this.sessionId = data.session_id;
-                        return;
+                        // show local preview
+                        this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                        
+                        // Always draw the reference line on top of the live feed
+                        this.drawReferenceLine();
+
+                        // send to backend
+                        try {
+                            const fd = new FormData();
+                            fd.append('file', blob, 'frame.jpg');
+                            fd.append('session_id', this.sessionId);
+                            const res = await fetch(`${BASE_URL}/putt/frame`, { method: 'POST', body: fd });
+                            
+                            if (!res.ok) {
+                                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                            }
+                            const data = await res.json();
+                            try { window.__lastData = data; window.lastData = data; } catch (_) {}
+                            
+                            
+                            if (!data.success && data.error) {
+                                console.error('Backend error:', data.error);
+                                this.setStatus(`Error: ${data.error}`, 'waiting');
+                                return;
+                            }
+                            
+                            this.renderResults(data);
+                            // If a putt just completed, draw the overlay path and pause momentarily
+                            if (data.putt_completed && data.path_points && data.path_points.length > 1) {
+                                // Announce completion visually and with light haptics
+                                this.showPuttComplete((data.putts || []).length);
+                                // Prefer sticker overlay using cropped images if provided
+                                if (data.path_images && data.path_images.length) {
+                                    await this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
+                                } else {
+                                this.drawPathOverlay(data.path_points, data.analysis_size);
+                                }
+                                // Capture the last visible frame (with overlays) as a JPEG for the modal
+                                try {
+                                    const dataUrl = this.previewCanvas.toDataURL('image/jpeg', 0.9);
+                                    if (dataUrl && dataUrl.startsWith('data:image')) {
+                                        data.result_image = dataUrl;
+                                        try { window.__lastData = data; } catch (_) {}
+                                    }
+                                } catch (_) {}
+                                // Small pause to let user see path (mobile-friendly)
+                                await new Promise(r => setTimeout(r, 1200));
+                                this.clearOverlay();
+                                // Redraw enforced reference line after clearing putt path
+                                this.drawReferenceLine();
+                            }
+                            if (data.state === 'completed') {
+                                this.setStatus('3 putts completed — Analysis ready', 'completed');
+                                this.running = false;
+                                document.getElementById('stopBtn').disabled = true;
+                                document.getElementById('startBtn').disabled = false;
+                                if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
+                                // Build accumulated sticker image across all putts if path_images were sent per putt
+                                try {
+                                    if (!data.result_image && Array.isArray(data.all_putt_overlays)) {
+                                        const composed = await this.composeResultFromAllPutts(data.all_putt_overlays);
+                                        if (composed) data.result_image = composed;
+                                    }
+                                } catch(_) {}
+                                await this.showSessionResults(data);
+                            }
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    } else {
+                        console.warn('Video not ready, skipping frame');
                     }
-                    this.inflight = false;
-                    if (!data.success && data.error) {
-                        this.setStatus(`Error: ${data.error}`, 'waiting');
-                        return;
-                    }
-                    // Render minimal results similar to index.html
-                    this.renderResults(data);
-                    if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                        this.drawPathOverlay(data.path_points, data.analysis_size);
-                        setTimeout(() => { this.clearOverlay(); this.drawReferenceLine(); }, 900);
-                    }
-                    if (data.state === 'completed') {
-                        this.setStatus('3 putts completed — Analysis ready', 'completed');
-                        this.running = false;
-                        document.getElementById('stopBtn').disabled = true;
-                        document.getElementById('startBtn').disabled = false;
-                        if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
-                        this.showResults(data);
-                    }
-                } catch (_) { this.inflight = false; }
+
+                    await new Promise(r => setTimeout(r, 80)); // ~12.5 fps
+                }
             }
 
             renderResults(data) {
@@ -505,6 +707,7 @@
                     }
                     wrap.appendChild(div);
                 }
+
                 const summary = document.getElementById('summary');
                 const avgArc = data.average_arc_type || '—';
                 const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
@@ -517,51 +720,347 @@
                 `;
             }
 
+            // Show a brief animated overlay when a putt completes
+            showPuttComplete(puttNumber) {
+                if (!this.puttCompleteEl) return;
+                const n = puttNumber || 1;
+                this.puttCompleteEl.innerHTML = `
+                    <div class="putt-complete-badge">
+                        <span class="dot"></span>
+                        Putt ${n} completed
+                    </div>
+                `;
+                this.puttCompleteEl.classList.add('show');
+                // Light haptic feedback on supported devices
+                try { if (navigator.vibrate) navigator.vibrate(40); } catch (_) { }
+                clearTimeout(this._puttHideT);
+                this._puttHideT = setTimeout(() => {
+                    this.puttCompleteEl.classList.remove('show');
+                }, 1200);
+            }
+
+            // Draw path overlay onto preview canvas using returned analysis coordinates
             drawPathOverlay(points, analysisSize) {
                 if (!analysisSize) return;
                 const sx = this.previewCanvas.width / analysisSize.w;
                 const sy = this.previewCanvas.height / analysisSize.h;
-                const ctx = this.previewCtx;
-                ctx.save();
-                ctx.lineWidth = 4;
-                ctx.strokeStyle = '#22c55e';
-                ctx.beginPath();
+                this.previewCtx.save();
+                this.previewCtx.lineWidth = 4;
+                this.previewCtx.strokeStyle = '#22c55e';
+                this.previewCtx.fillStyle = '#22c55e';
+                this.previewCtx.beginPath();
                 for (let i = 0; i < points.length; i++) {
                     const px = points[i].x * sx;
                     const py = points[i].y * sy;
-                    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    if (i === 0) this.previewCtx.moveTo(px, py);
+                    else this.previewCtx.lineTo(px, py);
                 }
-                ctx.stroke();
+                this.previewCtx.stroke();
+                // start/end markers
+                const s = points[0], e = points[points.length - 1];
+                if (s) {
+                    this.previewCtx.beginPath();
+                    this.previewCtx.arc(s.x * sx, s.y * sy, 6, 0, Math.PI * 2);
+                    this.previewCtx.fill();
+                }
+                if (e) {
+                    this.previewCtx.beginPath();
+                    this.previewCtx.arc(e.x * sx, e.y * sy, 6, 0, Math.PI * 2);
+                    this.previewCtx.fill();
+                }
+                this.previewCtx.restore();
+            }
+
+            // Draw stickers (cropped object images) along the path
+            async drawStickerOverlay(points, images, analysisSize) {
+                if (!analysisSize || !images || !images.length) return;
+                const sx = this.previewCanvas.width / analysisSize.w;
+                const sy = this.previewCanvas.height / analysisSize.h;
+                const ctx = this.previewCtx;
+                // Draw ALL stickers - no throttling
+                const step = 1;
+                for (let i = 0, idx = 0; i < points.length && idx < images.length; i += step, idx += step) {
+                    const imgSrc = images[idx];
+                    if (!imgSrc) continue;
+                    const px = points[i].x * sx;
+                    const py = points[i].y * sy;
+                    try {
+                        const img = await this.loadImage(imgSrc);
+                        // Draw centered at point, clamp size for readability
+                        const maxDim = Math.min(this.previewCanvas.width, this.previewCanvas.height) * 0.12;
+                        const scale = Math.min(maxDim / Math.max(img.width, img.height), 1.0);
+                        const w = Math.max(16, img.width * scale);
+                        const h = Math.max(16, img.height * scale);
+                        const x = Math.round(px - w / 2);
+                        const y = Math.round(py - h / 2);
+                        if (x + w > 0 && y + h > 0 && x < this.previewCanvas.width && y < this.previewCanvas.height) {
+                            ctx.save();
+                            ctx.globalAlpha = 0.5;
+                            ctx.drawImage(img, x, y, w, h);
+                            ctx.restore();
+                        }
+                    } catch {}
+                }
+            }
+
+            // Compose and return a dataURL by drawing stickers for ALL putts on the last frame
+            async composeResultFromAllPutts(allPutts) {
+                if (!this.previewCanvas) return null;
+                // clone current preview into an offscreen canvas
+                const off = document.createElement('canvas');
+                off.width = this.previewCanvas.width;
+                off.height = this.previewCanvas.height;
+                const ctx = off.getContext('2d');
+                ctx.drawImage(this.previewCanvas, 0, 0);
+                const maxStickers = 60;
+                for (const putt of (allPutts || [])) {
+                    const pts = putt.path_points || [];
+                    const imgs = putt.path_images || [];
+                    const step = Math.max(1, Math.floor(pts.length / Math.max(1, Math.floor(maxStickers / (allPutts.length||1)))));
+                    for (let i = 0, idx = 0; i < pts.length && idx < imgs.length; i += step, idx += step) {
+                        const imgSrc = imgs[idx];
+                        if (!imgSrc) continue;
+                        try {
+                            const img = await this.loadImage(imgSrc);
+                            const px = pts[i].x * (off.width / (this.previewCanvas.width));
+                            const py = pts[i].y * (off.height / (this.previewCanvas.height));
+                            const maxDim = Math.min(off.width, off.height) * 0.12;
+                            const scale = Math.min(maxDim / Math.max(img.width, img.height), 1.0);
+                            const w = Math.max(16, img.width * scale);
+                            const h = Math.max(16, img.height * scale);
+                            const x = Math.round(px - w / 2);
+                            const y = Math.round(py - h / 2);
+                            ctx.save();
+                            ctx.globalAlpha = 0.5;
+                            ctx.drawImage(img, x, y, w, h);
+                            ctx.restore();
+                        } catch {}
+                    }
+                }
+                return off.toDataURL('image/png');
+            }
+
+            // Compose an image with ALL putter positions drawn as cropped putter images across all putts
+            async composeDotsImageFromAllPutts(allPutts, analysisSize, baseSrc = null) {
+                if (!analysisSize) return null;
+                const off = document.createElement('canvas');
+                const w = this.previewCanvas ? this.previewCanvas.width : (analysisSize.w || 0);
+                const h = this.previewCanvas ? this.previewCanvas.height : (analysisSize.h || 0);
+                if (!w || !h) return null;
+                off.width = w;
+                off.height = h;
+                const ctx = off.getContext('2d');
+                // base layer: prefer captured base image if provided, else previewCanvas
+                if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
+                    try {
+                        const baseImg = await this.loadImage(baseSrc);
+                        ctx.drawImage(baseImg, 0, 0, off.width, off.height);
+                    } catch {
+                        if (this.previewCanvas) ctx.drawImage(this.previewCanvas, 0, 0);
+                    }
+                } else if (this.previewCanvas) {
+                    ctx.drawImage(this.previewCanvas, 0, 0);
+                }
+                const sx = off.width / analysisSize.w;
+                const sy = off.height / analysisSize.h;
+                
+                // draw cropped putter images instead of dots
+                ctx.save();
+                for (const putt of (allPutts || [])) {
+                    const pts = putt.path_points || [];
+                    const imgs = putt.path_images || [];
+                    const boxes = putt.path_boxes || [];
+                    
+                    // Draw ALL points - no skipping
+                    const step = 1;
+                    for (let i = 0; i < pts.length; i += step) {
+                        const point = pts[i];
+                        const imgSrc = imgs[i];
+                        const box = boxes[i];
+                        
+                        if (imgSrc && box) {
+                            try {
+                                const img = await this.loadImage(imgSrc);
+                                const px = point.x * sx;
+                                const py = point.y * sy;
+                                
+                                // Scale the cropped putter image
+                                const maxSize = Math.min(off.width, off.height) * 0.08;
+                                const scale = Math.min(maxSize / Math.max(img.width, img.height), 1.0);
+                                const w = img.width * scale;
+                                const h = img.height * scale;
+                                
+                                // Draw with slight transparency and border
+                                ctx.globalAlpha = 0.5;
+                                ctx.drawImage(img, px - w/2, py - h/2, w, h);
+                                
+                                // Add a subtle border
+                                ctx.strokeStyle = 'rgba(34,197,94,0.6)';
+                                ctx.lineWidth = 2;
+                                ctx.strokeRect(px - w/2, py - h/2, w, h);
+                            } catch (e) {
+                                // Fallback to dot if image fails to load
+                                ctx.fillStyle = 'rgba(34,197,94,0.95)';
+                                const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
+                                const px = point.x * sx;
+                                const py = point.y * sy;
+                                ctx.beginPath();
+                                ctx.arc(px, py, r, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
+                        } else {
+                            // Fallback to dot if no image data
+                            ctx.fillStyle = 'rgba(34,197,94,0.95)';
+                            const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
+                            const px = point.x * sx;
+                            const py = point.y * sy;
+                            ctx.beginPath();
+                            ctx.arc(px, py, r, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
                 ctx.restore();
+                return off.toDataURL('image/png');
+            }
+
+            // Compose an image with cropped putter images from a single list of points
+            async composeDotsImageFromPoints(points, analysisSize, images = null, boxes = null, baseSrc = null) {
+                if (!analysisSize || !Array.isArray(points) || points.length === 0) return null;
+                const off = document.createElement('canvas');
+                const w = this.previewCanvas ? this.previewCanvas.width : (analysisSize.w || 0);
+                const h = this.previewCanvas ? this.previewCanvas.height : (analysisSize.h || 0);
+                if (!w || !h) return null;
+                off.width = w;
+                off.height = h;
+                const ctx = off.getContext('2d');
+                // base layer: prefer captured base image if provided, else previewCanvas
+                if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
+                    try {
+                        const baseImg = await this.loadImage(baseSrc);
+                        ctx.drawImage(baseImg, 0, 0, off.width, off.height);
+                    } catch {
+                        if (this.previewCanvas) ctx.drawImage(this.previewCanvas, 0, 0);
+                    }
+                } else if (this.previewCanvas) {
+                    ctx.drawImage(this.previewCanvas, 0, 0);
+                }
+                const sx = off.width / analysisSize.w;
+                const sy = off.height / analysisSize.h;
+                
+                ctx.save();
+                // Draw ALL points - no skipping
+                const step = 1;
+                for (let i = 0; i < points.length; i += step) {
+                    const point = points[i];
+                    const imgSrc = images && images[i];
+                    const box = boxes && boxes[i];
+                    
+                    if (imgSrc && box) {
+                        try {
+                            const img = await this.loadImage(imgSrc);
+                            const px = point.x * sx;
+                            const py = point.y * sy;
+                            
+                            // Scale the cropped putter image
+                            const maxSize = Math.min(off.width, off.height) * 0.1;
+                            const scale = Math.min(maxSize / Math.max(img.width, img.height), 1.0);
+                            const w = img.width * scale;
+                            const h = img.height * scale;
+                            
+                            // Draw with slight transparency and border
+                            ctx.globalAlpha = 0.8;
+                            ctx.drawImage(img, px - w/2, py - h/2, w, h);
+                            
+                            // Add a subtle border
+                            ctx.strokeStyle = 'rgba(34,197,94,0.6)';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(px - w/2, py - h/2, w, h);
+                        } catch (e) {
+                            // Fallback to dot if image fails to load
+                            ctx.fillStyle = 'rgba(34,197,94,0.95)';
+                            const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
+                            const px = point.x * sx;
+                            const py = point.y * sy;
+                            ctx.beginPath();
+                            ctx.arc(px, py, r, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        // Fallback to dot if no image data
+                        ctx.fillStyle = 'rgba(34,197,94,0.95)';
+                        const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
+                        const px = point.x * sx;
+                        const py = point.y * sy;
+                        ctx.beginPath();
+                        ctx.arc(px, py, r, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+                return off.toDataURL('image/jpeg', 0.9);
+            }
+
+            loadImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = src;
+                });
             }
 
             clearOverlay() {
+                // redraw live frame to clear overlay next iteration; here we just clear
                 this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                // Redraw the reference line immediately after clearing
+                this.drawReferenceLine();
             }
 
+            // Draw enforced reference line to help users position their putter
             drawReferenceLine() {
+                if (!this.previewCanvas) return;
+                
                 const ctx = this.previewCtx;
                 const canvas = this.previewCanvas;
+                
+                // Fixed reference line - always vertical, centered
                 const centerX = canvas.width * 0.5;
                 const startY = 50;
                 const endY = canvas.height - 50;
                 const centerY = canvas.height / 2;
+                
                 ctx.save();
-                ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)';
+                
+                // Draw main reference line - RED DOTTED
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)'; // Red color
                 ctx.lineWidth = 3;
-                ctx.setLineDash([15, 10]);
+                ctx.setLineDash([15, 10]); // Dotted pattern
+                
                 ctx.beginPath();
                 ctx.moveTo(centerX, startY);
                 ctx.lineTo(centerX, endY);
                 ctx.stroke();
+                
+                // Draw center marker - prominent red circle
                 ctx.setLineDash([]);
                 ctx.strokeStyle = 'rgba(220, 38, 38, 1.0)';
                 ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
                 ctx.lineWidth = 4;
+                
+                // Center circle - larger and more prominent
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
+                
+                // Add inner white dot for better visibility
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add instruction text
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                 ctx.font = 'bold 16px system-ui';
                 ctx.textAlign = 'center';
@@ -569,59 +1068,238 @@
                 ctx.lineWidth = 3;
                 ctx.strokeText('POSITION PUTTER HERE', centerX, centerY - 25);
                 ctx.fillText('POSITION PUTTER HERE', centerX, centerY - 25);
+                
+                // Add start and end markers - red
+                ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([]);
+                
+                // Start marker (top)
+                ctx.beginPath();
+                ctx.moveTo(centerX - 20, startY);
+                ctx.lineTo(centerX + 20, startY);
+                ctx.stroke();
+                
+                // End marker (bottom)
+                ctx.beginPath();
+                ctx.moveTo(centerX - 20, endY);
+                ctx.lineTo(centerX + 20, endY);
+                ctx.stroke();
+                
+                // Add directional arrows
+                ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
+                ctx.font = 'bold 12px system-ui';
+                ctx.textAlign = 'center';
+                ctx.fillText('↑', centerX, startY - 10);
+                ctx.fillText('↓', centerX, endY + 15);
+                
                 ctx.restore();
             }
 
             stop() {
                 this.running = false;
-                if (this.ws && this.ws.readyState === 1) {
-                    try { this.ws.send(JSON.stringify({ type: 'stop' })); } catch (_) { }
+                if (this.stream) {
+                    this.stream.getTracks().forEach(t => t.stop());
+                    this.stream = null;
                 }
                 document.getElementById('stopBtn').disabled = true;
                 document.getElementById('startBtn').disabled = false;
                 this.setStatus('Stopped', 'waiting');
+                
+                // Redraw reference line when stopping
                 this.drawReferenceLine();
             }
 
-            showResults(data) {
-                this.resultsLeft.innerHTML = '';
+            // ----- Results Modal -----
+            async showSessionResults(data) {
+                if (!this.resultsModal) return;
                 const putts = data.putts || [];
                 const total = putts.length;
                 const avgArc = data.average_arc_type || '—';
                 const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
-                const left = [];
-                left.push(`<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">` +
-                    `<div style="font-weight:800; font-size:16px; color:#fff;">Overview</div>` +
-                    `<span class="pill pill-ok">Target 3 • Count ${total}</span>` +
-                    `</div>`);
-                left.push(`<div style="margin:6px 0; color:#cbd5e1;">Average Arc: <b style="color:#fff;">${avgArc}</b></div>`);
-                left.push(`<div style="margin:6px 0; color:#cbd5e1;">Average Confidence: <b style="color:#fff;">${avgConf}</b></div>`);
-                putts.forEach((p, i) => {
+
+                // Left panel: chart-like summary and per-putt details (angles removed)
+                const leftParts = [];
+                leftParts.push(`<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-weight:800; font-size:16px; color:#fff;">Overview</div>
+                    <span class="badge badge-excellent">Target 3 • Count ${total}</span>
+                </div>`);
+                leftParts.push(`<div class="metric"><span class="name">Average Arc</span><span class="value">${avgArc}</span></div>`);
+                leftParts.push(`<div class="metric"><span class="name">Average Confidence</span><span class="value">${avgConf}</span></div>`);
+
+                // Build per-putt mini-cards (angles removed)
+                for (let i = 0; i < putts.length; i++) {
+                    const p = putts[i];
                     const confPct = p.confidence != null ? (p.confidence * 100).toFixed(0) : 0;
-                    left.push(`<div style="margin-top:10px; border-top:1px solid #1f2937; padding-top:8px;">` +
-                        `<div style="display:flex; align-items:center; justify-content:space-between;">` +
-                        `<div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>` +
-                        `<span class="pill pill-ok">${(p.arc_type || '—')}</span>` +
-                        `</div>` +
-                        `<div style="margin-top:6px; color:#cbd5e1;">Confidence: <b style="color:#fff;">${confPct}%</b></div>` +
-                        `</div>`);
-                });
-                this.resultsLeft.innerHTML = left.join('');
-                const right = [];
-                if (data.result_image) {
-                    right.push(`<img alt="Result" style="width:100%; border-radius:8px; border:1px solid #1f2937;" />`);
+                    const pts = p.point_count || 0;
+                    leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between;">
+                            <div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>
+                            <span class="badge badge-good">${(p.arc_type || '—').toString()}</span>
+                        </div>
+                        <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
+                        <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
+                        <div class="metric"><span class="name">Points</span><span class="value">${pts}</span></div>
+                        ${p.reasoning ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${p.reasoning}</div>` : ''}
+                    </div>`);
                 }
-                this.resultsRight.innerHTML = right.join('');
+
+                this.resultsLeft.innerHTML = leftParts.join('');
+
+                // Right panel: remove angle gauges; keep only the result image and summary chips
+                const imgSrc = null; // First frame removed from UI
+                
+                this.resultsRight.innerHTML = `
+                    <div style=\"font-weight:800; color:#e5e7eb; margin-bottom:8px;\">Result</div>
+                    
+                    ${data.result_image ? `<div style="margin-top:12px"><div class="metric"><span class="name">Result Image</span><span class="value"></span></div><img class="result-frame" alt="Result frame" style="width:100%; border-radius:8px; border:1px solid #1f2937;"/></div>` : ''}
+                    <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
+                        <span class=\"badge badge-excellent\">Average: ${avgArc}</span>
+                        <span class=\"badge badge-good\">Putts ${total}/3</span>
+                    </div>
+                `;
+                
                 if (data.result_image) {
-                    const img = this.resultsRight.querySelector('img');
-                    if (img) img.src = String(data.result_image).replace(/^["']+|["']+$/g, '');
+                    const rEl = this.resultsRight.querySelector('img.result-frame');
+                    if (rEl) {
+                        rEl.src = String(data.result_image).replace(/^[\"']+|[\"']+$/g, '');
+                    }
+                }
+                // ALWAYS generate dots image - prioritize all putts, fallback to single putt, then raw frame
+                try {
+                    let dotsImage = null;
+                    
+                    // First try: all putts dots composite (use captured base image if available)
+                    if (Array.isArray(data.all_putt_overlays) && data.all_putt_overlays.length > 0) {
+                        const baseSrc = data.result_image || data.first_frame_image || null;
+                        dotsImage = await this.composeDotsImageFromAllPutts(
+                            data.all_putt_overlays,
+                            data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
+                            baseSrc
+                        );
+                    }
+                    
+                    // Second try: single putt cropped images
+                    if (!dotsImage && Array.isArray(data.path_points) && data.path_points.length > 0) {
+                        const baseSrc = data.result_image || data.first_frame_image || null;
+                        dotsImage = await this.composeDotsImageFromPoints(
+                            data.path_points, 
+                            data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
+                            data.path_images,
+                            data.path_boxes,
+                            baseSrc
+                        );
+                    }
+                    
+                    // Final fallback: captured result image, then preview
+                    if (!dotsImage && data.result_image) {
+                        dotsImage = String(data.result_image);
+                    } else if (!dotsImage && this.previewCanvas) {
+                        dotsImage = this.previewCanvas.toDataURL('image/png');
+                    }
+                    
+                    // Display the image
+                    if (dotsImage && dotsImage.startsWith('data:image')) {
+                        const rEl = this.resultsRight.querySelector('img.result-frame');
+                        if (rEl) {
+                            rEl.src = dotsImage;
+                        } else {
+                            const wrap = this.resultsRight;
+                            const cap = document.createElement('div');
+                            cap.className = 'metric';
+                            cap.innerHTML = '<span class="name">Result Image</span><span class="value"></span>';
+                            wrap.appendChild(cap);
+                            const img = new Image();
+                            img.alt = 'Result frame';
+                            img.style.cssText = 'width:100%; border-radius:8px; border:1px solid #1f2937; display:block;';
+                            img.src = dotsImage;
+                            wrap.appendChild(img);
+                        }
+                        // Store for potential reuse
+                        data.result_image = dotsImage;
+                    }
+                } catch (e) {
+                    console.warn('Failed to generate dots image:', e);
                 }
                 this.resultsModal.classList.add('show');
             }
-            hideResults() { this.resultsModal.classList.remove('show'); }
+            hideResults() {
+                if (this.resultsModal) this.resultsModal.classList.remove('show');
+            }
         }
-        document.addEventListener('DOMContentLoaded', () => new WSUICtrl());
+        document.addEventListener('DOMContentLoaded', () => {
+            const ui = new PuttUI();
+            // If ws enabled, override transport with WS while preserving UX
+            if (USE_WS) {
+                try {
+                    // Monkey-patch startSession and loop to use WS
+                    ui.openSocket = function() {
+                        this.ws = new WebSocket(WS_URL);
+                        this.ws.binaryType = 'arraybuffer';
+                        this.ws.onopen = () => {
+                            this.ws.send(JSON.stringify({ type: 'start', user_id: `user_${Date.now()}` }));
+                        };
+                        this.ws.onmessage = (ev) => {
+                            try {
+                                const data = JSON.parse(ev.data);
+                                if (data.type === 'started' && data.session_id) {
+                                    this.sessionId = data.session_id;
+                                    return;
+                                }
+                                if (!data.success && data.error) {
+                                    this.setStatus(`Error: ${data.error}`, 'waiting');
+                                    return;
+                                }
+                                this.renderResults(data);
+                                if (data.putt_completed && data.path_points && data.path_points.length > 1) {
+                                    this.showPuttComplete((data.putts || []).length);
+                                    if (data.path_images && data.path_images.length) {
+                                        this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
+                                    } else {
+                                        this.drawPathOverlay(data.path_points, data.analysis_size);
+                                    }
+                                    setTimeout(() => { this.clearOverlay(); this.drawReferenceLine(); }, 1200);
+                                }
+                                if (data.state === 'completed') {
+                                    this.setStatus('3 putts completed — Analysis ready', 'completed');
+                                    this.running = false;
+                                    document.getElementById('stopBtn').disabled = true;
+                                    document.getElementById('startBtn').disabled = false;
+                                    if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
+                                    this.showSessionResults(data);
+                                }
+                            } catch {}
+                        };
+                        this.ws.onclose = () => { this.ws = null; this.running = false; };
+                        this.ws.onerror = () => {};
+                    };
+                    ui.startSession = async function() {
+                        if (!this.ws) this.openSocket();
+                        this.running = true;
+                        document.getElementById('startBtn').disabled = true;
+                        document.getElementById('stopBtn').disabled = false;
+                        this.setStatus('Session started — Make your first putt', 'detecting');
+                        if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
+                        this.loop = async () => {
+                            while (this.running && this.stream) {
+                                if (!this.ws || this.ws.readyState !== 1) { await new Promise(r => setTimeout(r, 40)); continue; }
+                                this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
+                                const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/webp', 0.55));
+                                if (!blob) { await new Promise(r => setTimeout(r, 12)); continue; }
+                                this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
+                                this.drawReferenceLine();
+                                try {
+                                    const buf = await blob.arrayBuffer();
+                                    this.ws.send(buf);
+                                } catch {}
+                                await new Promise(r => setTimeout(r, 70));
+                            }
+                        };
+                        this.loop();
+                    };
+                } catch {}
+            }
+        });
     </script>
 </body>
-
 </html>
