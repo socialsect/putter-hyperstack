@@ -831,8 +831,10 @@
                             const x = Math.round(px - w / 2);
                             const y = Math.round(py - h / 2);
                             ctx.save();
-                            ctx.globalAlpha = 0.5;
-                            ctx.drawImage(img, x, y, w, h);
+                                ctx.save();
+                                ctx.globalAlpha = 0.5;
+                                ctx.drawImage(img, x, y, w, h);
+                                ctx.restore();
                             ctx.restore();
                         } catch {}
                     }
@@ -894,10 +896,7 @@
                                 ctx.globalAlpha = 0.5;
                                 ctx.drawImage(img, px - w/2, py - h/2, w, h);
                                 
-                                // Add a subtle border
-                                ctx.strokeStyle = 'rgba(34,197,94,0.6)';
-                                ctx.lineWidth = 2;
-                                ctx.strokeRect(px - w/2, py - h/2, w, h);
+                                // Border intentionally removed per requirement: stickers have no boxes
                             } catch (e) {
                                 // Fallback to dot if image fails to load
                                 ctx.fillStyle = 'rgba(34,197,94,0.95)';
@@ -969,13 +968,12 @@
                             const h = img.height * scale;
                             
                             // Draw with slight transparency and border
-                            ctx.globalAlpha = 0.8;
+                            ctx.save();
+                            ctx.globalAlpha = 0.5;
                             ctx.drawImage(img, px - w/2, py - h/2, w, h);
+                            ctx.restore();
                             
-                            // Add a subtle border
-                            ctx.strokeStyle = 'rgba(34,197,94,0.6)';
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(px - w/2, py - h/2, w, h);
+                            // Border intentionally removed per requirement: stickers have no boxes
                         } catch (e) {
                             // Fallback to dot if image fails to load
                             ctx.fillStyle = 'rgba(34,197,94,0.95)';
