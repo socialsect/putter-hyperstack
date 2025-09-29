@@ -520,6 +520,9 @@
             lastRtt: null,
             pingInterval: null
         };
+        
+        // Backend configuration constants (must match backend settings)
+        const TARGET_SIZE = 384; // Must match TARGET_SIZE in new.py
     </script>
 </head>
 
@@ -907,7 +910,7 @@
                         <span class="dot"></span>
                         Putt ${n} completed
                     </div>
-        `;
+                `;
                 this.puttCompleteEl.classList.add('show');
                 // Light haptic feedback on supported devices
                 try { if (navigator.vibrate) navigator.vibrate(40); } catch (_) { }
