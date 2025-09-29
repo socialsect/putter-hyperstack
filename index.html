@@ -419,6 +419,55 @@
 
         .modal-body img { max-width: 100%; height: auto; display: block; }
 
+        /* Start zone and armed badge styles */
+        .armed-badge {
+            background: #FF9800;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        
+        .armed-badge.armed {
+            background: #4CAF50;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .start-zone {
+            position: absolute;
+            border: 2px dashed #FF9800;
+            background: rgba(255, 152, 0, 0.1);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .start-zone.armed {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+            animation: pulse 1s infinite;
+        }
+        
+        .rtt-badge {
+            background: #2196F3;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 4px;
+        }
+
         /* Mobile full-screen modal */
         @media (max-width: 600px) {
             .modal-backdrop { padding: 0; }
@@ -447,6 +496,30 @@
         const USE_WS = wsParam && wsParam !== '0';
         const WS_BASE = typeof wsParam === 'string' && wsParam !== '1' ? wsParam : (location.origin.replace(/^http/, 'ws'));
         const WS_URL = (WS_BASE.replace(/\/$/, '')) + '/ws';
+        
+        // Start zone gating configuration (optional via query params)
+        const START_ZONE_ENABLED = qp.get('sz') !== 'false';
+        const START_ZONE_WIDTH = parseInt(qp.get('szw')) || 80;
+        const START_ZONE_HEIGHT = parseInt(qp.get('szh')) || 140;
+        const START_ZONE_DWELL_MS = parseInt(qp.get('dwell')) || 700;
+        
+        // Start zone state
+        let startZoneState = {
+            enabled: false,
+            armed: false,
+            inZone: false,
+            center: null,
+            bounds: null
+        };
+        
+        // RTT monitoring configuration
+        const RTT_ENABLED = qp.get('rtt') !== 'false';
+        const RTT_PING_INTERVAL = parseInt(qp.get('ping')) || 3000; // 3 seconds
+        let rttState = {
+            enabled: false,
+            lastRtt: null,
+            pingInterval: null
+        };
     </script>
 </head>
 
@@ -463,6 +536,7 @@
                         <video id="camera" autoplay muted playsinline style="display:none"></video>
                         <canvas id="frameCanvas" style="display:none"></canvas>
                         <canvas id="previewCanvas"></canvas>
+                        <div id="startZone" class="start-zone" style="display: none;"></div>
                         <div class="pill-badge" id="sessionBadge">Idle</div>
                         <div class="status-floating" id="statusFloating">Ready</div>
                         <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
@@ -476,6 +550,8 @@
                         </div>
                     </div>
                     <div id="status" class="status waiting">Ready — Start camera to begin</div>
+                    <span id="armedBadge" class="armed-badge" style="display: none;">Armed</span>
+                    <span id="rttBadge" class="rtt-badge" style="display: none;">RTT 0ms</span>
                 </div>
                 <div class="card">
                     <h3>Results</h3>
@@ -526,6 +602,11 @@
                 this.resultsModal = document.getElementById('resultsModal');
                 this.resultsLeft = document.getElementById('resultsLeft');
                 this.resultsRight = document.getElementById('resultsRight');
+                
+                // Start zone elements
+                this.startZone = document.getElementById('startZone');
+                this.armedBadge = document.getElementById('armedBadge');
+                this.rttBadge = document.getElementById('rttBadge');
                 const closeA = document.getElementById('closeResults');
                 const closeB = document.getElementById('closeResults2');
                 if (closeA) closeA.onclick = () => this.hideResults();
@@ -546,6 +627,89 @@
                 el.className = `status ${cls}`;
                 // floating status for fullscreen
                 if (this.statusFloating) this.statusFloating.textContent = text;
+            }
+            
+            updateStartZone(data) {
+                if (!START_ZONE_ENABLED || !data.start_zone_enabled) {
+                    if (this.startZone) this.startZone.style.display = 'none';
+                    if (this.armedBadge) this.armedBadge.style.display = 'none';
+                    return;
+                }
+                
+                // Update start zone state
+                startZoneState.enabled = data.start_zone_enabled;
+                startZoneState.armed = data.start_zone_armed;
+                startZoneState.inZone = data.start_zone_in_zone;
+                startZoneState.center = data.start_zone_center;
+                startZoneState.bounds = data.start_zone_bounds;
+                
+                // Show/hide start zone overlay
+                if (this.startZone && data.start_zone_bounds) {
+                    const bounds = data.start_zone_bounds;
+                    const stageRect = this.stage.getBoundingClientRect();
+                    const scaleX = stageRect.width / TARGET_SIZE;
+                    const scaleY = stageRect.height / TARGET_SIZE;
+                    
+                    const zoneWidth = bounds.width * scaleX;
+                    const zoneHeight = bounds.height * scaleY;
+                    const zoneLeft = (TARGET_SIZE * 0.5 - bounds.width * 0.5) * scaleX;
+                    const zoneTop = (TARGET_SIZE * 0.5 - bounds.height * 0.5) * scaleY;
+                    
+                    this.startZone.style.left = `${zoneLeft}px`;
+                    this.startZone.style.top = `${zoneTop}px`;
+                    this.startZone.style.width = `${zoneWidth}px`;
+                    this.startZone.style.height = `${zoneHeight}px`;
+                    this.startZone.style.display = 'block';
+                    
+                    // Update armed state
+                    if (data.start_zone_armed) {
+                        this.startZone.classList.add('armed');
+                    } else {
+                        this.startZone.classList.remove('armed');
+                    }
+                }
+                
+                // Show/hide armed badge
+                if (this.armedBadge) {
+                    if (data.start_zone_armed) {
+                        this.armedBadge.style.display = 'inline-block';
+                        this.armedBadge.classList.add('armed');
+                    } else {
+                        this.armedBadge.style.display = 'none';
+                        this.armedBadge.classList.remove('armed');
+                    }
+                }
+            }
+            
+            startRttMonitoring() {
+                if (!RTT_ENABLED || !this.ws) return;
+                
+                rttState.enabled = true;
+                rttState.pingInterval = setInterval(() => {
+                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                        const pingTime = Date.now();
+                        this.ws.send(JSON.stringify({ type: 'ping', t: pingTime }));
+                    }
+                }, RTT_PING_INTERVAL);
+            }
+            
+            stopRttMonitoring() {
+                if (rttState.pingInterval) {
+                    clearInterval(rttState.pingInterval);
+                    rttState.pingInterval = null;
+                }
+                rttState.enabled = false;
+                if (this.rttBadge) {
+                    this.rttBadge.style.display = 'none';
+                }
+            }
+            
+            updateRtt(rttMs) {
+                if (!RTT_ENABLED || !this.rttBadge) return;
+                
+                rttState.lastRtt = rttMs;
+                this.rttBadge.textContent = `RTT ${Math.round(rttMs)}ms`;
+                this.rttBadge.style.display = 'inline-block';
             }
 
             async startCamera() {
@@ -635,6 +799,7 @@
                             }
                             
                             this.renderResults(data);
+                            this.updateStartZone(data);
                             // If a putt just completed, draw the overlay path and pause momentarily
                             if (data.putt_completed && data.path_points && data.path_points.length > 1) {
                                 // Announce completion visually and with light haptics
@@ -1237,6 +1402,7 @@
                         this.ws.binaryType = 'arraybuffer';
                         this.ws.onopen = () => {
                             this.ws.send(JSON.stringify({ type: 'start', user_id: `user_${Date.now()}` }));
+                            this.startRttMonitoring();
                         };
                         this.ws.onmessage = (ev) => {
                             try {
@@ -1245,11 +1411,17 @@
                                     this.sessionId = data.session_id;
                                     return;
                                 }
+                                if (data.type === 'pong' && data.t) {
+                                    const rtt = Date.now() - data.t;
+                                    this.updateRtt(rtt);
+                                    return;
+                                }
                                 if (!data.success && data.error) {
                                     this.setStatus(`Error: ${data.error}`, 'waiting');
                                     return;
                                 }
                                 this.renderResults(data);
+                                this.updateStartZone(data);
                                 if (data.putt_completed && data.path_points && data.path_points.length > 1) {
                                     this.showPuttComplete((data.putts || []).length);
                                     if (data.path_images && data.path_images.length) {
@@ -1269,7 +1441,11 @@
                                 }
                             } catch {}
                         };
-                        this.ws.onclose = () => { this.ws = null; this.running = false; };
+                        this.ws.onclose = () => { 
+                            this.ws = null; 
+                            this.running = false; 
+                            this.stopRttMonitoring();
+                        };
                         this.ws.onerror = () => {};
                     };
                     ui.startSession = async function() {
