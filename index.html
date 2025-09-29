@@ -632,6 +632,21 @@
                 if (this.statusFloating) this.statusFloating.textContent = text;
             }
             
+            // Format arc type for display
+            formatArcType(arcType) {
+                if (!arcType) return '—';
+                const arcMap = {
+                    'straight': 'Straight',
+                    'inside_out': 'Inside-Out',
+                    'outside_in': 'Outside-In',
+                    'slight_inside_out': 'Slight Inside-Out',
+                    'slight_outside_in': 'Slight Outside-In',
+                    'strong_inside_out': 'Strong Inside-Out',
+                    'strong_outside_in': 'Strong Outside-In'
+                };
+                return arcMap[arcType] || arcType;
+            }
+            
             updateStartZone(data) {
                 if (!START_ZONE_ENABLED || !data.start_zone_enabled) {
                     if (this.startZone) this.startZone.style.display = 'none';
@@ -884,7 +899,7 @@
                         const conf = p.confidence ? (p.confidence * 100).toFixed(1) + '%' : '-';
                         div.innerHTML = `
                             <div style="font-weight:700">${title}</div>
-                            <div style="margin-top:6px">Arc: <span class="pill pill-ok">${p.arc_type || '—'}</span></div>
+                            <div style="margin-top:6px">Arc: <span class="pill pill-ok">${this.formatArcType(p.arc_type)}</span></div>
                             <div style="margin-top:6px">Confidence: ${conf}</div>
                             <div style="margin-top:6px; color:#475569; font-size:12px">${p.reasoning || ''}</div>
                         `;
@@ -898,7 +913,7 @@
                 summary.innerHTML = `
                     <div style="padding:12px; background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px;">
                         <div style="font-weight:800; color:#3730a3;">Overall Result</div>
-                        <div style="margin-top:6px">Average Arc Type: <span class="pill pill-ok">${avgArc}</span></div>
+                        <div style="margin-top:6px">Average Arc Type: <span class="pill pill-ok">${this.formatArcType(avgArc)}</span></div>
                         <div style="margin-top:6px">Average Confidence: ${avgConf}</div>
                     </div>
                 `;
@@ -1318,7 +1333,7 @@
                     leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
                         <div style="display:flex; align-items:center; justify-content:space-between;">
                             <div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>
-                            <span class="badge badge-good">${(p.arc_type || '—').toString()}</span>
+                            <span class="badge badge-good">${this.formatArcType(p.arc_type)}</span>
                         </div>
                         <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
                         <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
@@ -1337,7 +1352,7 @@
                     
                     ${data.result_image ? `<div style="margin-top:12px"><div class="metric"><span class="name">Result Image</span><span class="value"></span></div><img class="result-frame" alt="Result frame" style="width:100%; border-radius:8px; border:1px solid #1f2937;"/></div>` : ''}
                     <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
-                        <span class=\"badge badge-excellent\">Average: ${avgArc}</span>
+                        <span class=\"badge badge-excellent\">Average: ${this.formatArcType(avgArc)}</span>
                         <span class=\"badge badge-good\">Putts ${total}/3</span>
                     </div>
                 `;
