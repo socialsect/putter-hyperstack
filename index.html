@@ -812,11 +812,12 @@
                 off.height = this.previewCanvas.height;
                 const ctx = off.getContext('2d');
                 ctx.drawImage(this.previewCanvas, 0, 0);
+                const stepGlobal = 4; // draw every 4th detection for modal image
                 const maxStickers = 60;
                 for (const putt of (allPutts || [])) {
                     const pts = putt.path_points || [];
                     const imgs = putt.path_images || [];
-                    const step = Math.max(1, Math.floor(pts.length / Math.max(1, Math.floor(maxStickers / (allPutts.length||1)))));
+                    const step = stepGlobal;
                     for (let i = 0, idx = 0; i < pts.length && idx < imgs.length; i += step, idx += step) {
                         const imgSrc = imgs[idx];
                         if (!imgSrc) continue;
@@ -873,8 +874,8 @@
                     const imgs = putt.path_images || [];
                     const boxes = putt.path_boxes || [];
                     
-                    // Draw ALL points - no skipping
-                    const step = 1;
+                    // Draw every 4th point for modal image
+                    const step = 4;
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const imgSrc = imgs[i];
@@ -948,8 +949,8 @@
                 const sy = off.height / analysisSize.h;
                 
                 ctx.save();
-                // Draw ALL points - no skipping
-                const step = 1;
+                // Draw every 4th point for modal image
+                const step = 4;
                 for (let i = 0; i < points.length; i += step) {
                     const point = points[i];
                     const imgSrc = images && images[i];
