@@ -638,14 +638,18 @@
                 
                 // Update start zone state
                 startZoneState.enabled = data.start_zone_enabled;
-                startZoneState.armed = data.start_zone_armed;
-                startZoneState.inZone = data.start_zone_in_zone;
+                startZoneState.armed = data.start_zone_armed || false;
+                startZoneState.inZone = data.start_zone_in_zone || false;
                 startZoneState.center = data.start_zone_center;
                 startZoneState.bounds = data.start_zone_bounds;
                 
-                // Show/hide start zone overlay
-                if (this.startZone && data.start_zone_bounds) {
-                    const bounds = data.start_zone_bounds;
+                // Show start zone overlay (use default bounds if not provided)
+                if (this.startZone) {
+                    const bounds = data.start_zone_bounds || {
+                        width: START_ZONE_WIDTH,
+                        height: START_ZONE_HEIGHT,
+                        dwell_ms: START_ZONE_DWELL_MS
+                    };
                     const stageRect = this.stage.getBoundingClientRect();
                     const scaleX = stageRect.width / TARGET_SIZE;
                     const scaleY = stageRect.height / TARGET_SIZE;
@@ -757,6 +761,15 @@
                     
                     // Ensure reference line is visible when starting
                     this.drawReferenceLine();
+                    
+                    // Show start zone when session starts
+                    if (START_ZONE_ENABLED) {
+                        this.updateStartZone({ 
+                            start_zone_enabled: true, 
+                            start_zone_armed: false, 
+                            start_zone_in_zone: false 
+                        });
+                    }
                     
                     this.loop();
                 } catch (e) {
@@ -1455,6 +1468,16 @@
                         document.getElementById('stopBtn').disabled = false;
                         this.setStatus('Session started — Make your first putt', 'detecting');
                         if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
+                        
+                        // Show start zone when session starts
+                        if (START_ZONE_ENABLED) {
+                            this.updateStartZone({ 
+                                start_zone_enabled: true, 
+                                start_zone_armed: false, 
+                                start_zone_in_zone: false 
+                            });
+                        }
+                        
                         this.loop = async () => {
                             while (this.running && this.stream) {
                                 if (!this.ws || this.ws.readyState !== 1) { await new Promise(r => setTimeout(r, 40)); continue; }
