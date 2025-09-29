@@ -464,9 +464,7 @@
                         <canvas id="frameCanvas" style="display:none"></canvas>
                         <canvas id="previewCanvas"></canvas>
                         <div class="pill-badge" id="sessionBadge">Idle</div>
-                        <div class="pill-badge" id="armedBadge" style="left:auto; right:12px; display:none; background:rgba(22,163,74,0.9)">Armed</div>
                         <div class="status-floating" id="statusFloating">Ready</div>
-                        <div class="pill-badge" id="rttBadge" style="top:auto; bottom:12px; background:rgba(15,23,42,0.75); display:none">RTT —</div>
                         <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
                             role="status"></div>
                         <div class="controls-floating">
@@ -528,8 +526,6 @@
                 this.resultsModal = document.getElementById('resultsModal');
                 this.resultsLeft = document.getElementById('resultsLeft');
                 this.resultsRight = document.getElementById('resultsRight');
-                this.armedBadge = document.getElementById('armedBadge');
-                this.rttBadge = document.getElementById('rttBadge');
                 const closeA = document.getElementById('closeResults');
                 const closeB = document.getElementById('closeResults2');
                 if (closeA) closeA.onclick = () => this.hideResults();
@@ -538,9 +534,6 @@
                 this.sessionId = null;
                 this.stream = null;
                 this.running = false;
-                this._insideSince = null;
-                this.armed = false;
-                this.analysisSize = null;
 
                 document.getElementById('cameraBtn').onclick = () => this.startCamera();
                 document.getElementById('startBtn').onclick = () => this.startSession();
@@ -612,16 +605,14 @@
                 while (this.running && this.stream) {
                     // draw frame
                     if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
-                this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
+                        this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
                         const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.7));
 
                         // show local preview
                         this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
                         
-                // Always draw the reference line on top of the live feed
-                this.drawReferenceLine();
-                // Draw start zone overlay (optional)
-                this.drawStartZone();
+                        // Always draw the reference line on top of the live feed
+                        this.drawReferenceLine();
 
                         // send to backend
                         try {
@@ -698,8 +689,6 @@
                 const putts = data.putts || [];
                 const wrap = document.getElementById('putts');
                 wrap.innerHTML = '';
-                // capture analysis size for start-zone mapping
-                if (data && data.analysis_size) this.analysisSize = data.analysis_size;
                 for (let i = 0; i < 3; i++) {
                     const p = putts[i];
                     const div = document.createElement('div');
@@ -812,28 +801,6 @@
                         }
                     } catch {}
                 }
-            }
-
-            // Draw start zone centered on the red line; controlled via query (?arm=1 to enable UI)
-            drawStartZone() {
-                const qp = new URLSearchParams(location.search);
-                if (!qp.get('arm')) return; // off by default
-                if (!this.previewCanvas) return;
-                const ctx = this.previewCtx;
-                const canvas = this.previewCanvas;
-                const centerX = canvas.width * 0.5;
-                const centerY = canvas.height * 0.5;
-                const zoneW = parseInt(qp.get('szw') || '80', 10);
-                const zoneH = parseInt(qp.get('szh') || '140', 10);
-                ctx.save();
-                ctx.fillStyle = 'rgba(37,99,235,0.12)';
-                ctx.strokeStyle = 'rgba(37,99,235,0.85)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.rect(Math.round(centerX - zoneW/2), Math.round(centerY - zoneH/2), zoneW, zoneH);
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
             }
 
             // Compose and return a dataURL by drawing stickers for ALL putts on the last frame
@@ -1270,29 +1237,12 @@
                         this.ws.binaryType = 'arraybuffer';
                         this.ws.onopen = () => {
                             this.ws.send(JSON.stringify({ type: 'start', user_id: `user_${Date.now()}` }));
-                            // optional RTT ping if ?rtt=1
-                            const qp = new URLSearchParams(location.search);
-                            if (qp.get('rtt')) {
-                                this._rttTimer && clearInterval(this._rttTimer);
-                                this._rttTimer = setInterval(() => {
-                                    try {
-                                        this._lastPingTs = performance.now();
-                                        this.ws.send(JSON.stringify({ type: 'ping' }));
-                                    } catch {}
-                                }, 3000);
-                                if (this.rttBadge) this.rttBadge.style.display = 'block';
-                            }
                         };
                         this.ws.onmessage = (ev) => {
                             try {
                                 const data = JSON.parse(ev.data);
                                 if (data.type === 'started' && data.session_id) {
                                     this.sessionId = data.session_id;
-                                    return;
-                                }
-                                if (data.type === 'pong' && this._lastPingTs != null) {
-                                    const dt = Math.max(0, Math.round(performance.now() - this._lastPingTs));
-                                    if (this.rttBadge) this.rttBadge.textContent = `RTT ${dt} ms`;
                                     return;
                                 }
                                 if (!data.success && data.error) {
