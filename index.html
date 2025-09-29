@@ -513,8 +513,8 @@
         };
         
         // RTT monitoring configuration
-        const RTT_ENABLED = qp.get('rtt') !== 'false';
-        const RTT_PING_INTERVAL = parseInt(qp.get('ping')) || 3000; // 3 seconds
+        const RTT_ENABLED = qp.get('rtt') !== 'false' && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const RTT_PING_INTERVAL = parseInt(qp.get('ping')) || 5000; // Increased to 5 seconds for mobile
         let rttState = {
             enabled: false,
             lastRtt: null,
@@ -862,7 +862,10 @@
                         console.warn('Video not ready, skipping frame');
                     }
 
-                    await new Promise(r => setTimeout(r, 80)); // ~12.5 fps
+                    // Adjust frame rate based on device type
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    const frameDelay = isMobile ? 120 : 80; // Slower on mobile: ~8.3 fps vs ~12.5 fps
+                    await new Promise(r => setTimeout(r, frameDelay));
                 }
             }
 
