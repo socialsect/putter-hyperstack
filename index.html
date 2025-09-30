@@ -637,12 +637,12 @@
                 if (!arcType) return '—';
                 const arcMap = {
                     'straight': 'Straight',
-                    'inside_out': 'Inside-Out',
-                    'outside_in': 'Outside-In',
-                    'slight_inside_out': 'Slight Inside-Out',
-                    'slight_outside_in': 'Slight Outside-In',
-                    'strong_inside_out': 'Strong Inside-Out',
-                    'strong_outside_in': 'Strong Outside-In'
+                    'slight_arc': 'Slight Arc',
+                    'strong_arc': 'Strong Arc',
+                    'slight_to_straight_arc': 'Slight to Straight Arc',
+                    'straight_to_slight_arc': 'Straight to Slight Arc',
+                    'strong_arc_to_straight_arc': 'Strong Arc to Straight Arc',
+                    'straight_arc_to_strong_arc': 'Straight Arc to Strong Arc'
                 };
                 return arcMap[arcType] || arcType;
             }
