@@ -976,7 +976,7 @@
                 const sx = this.previewCanvas.width / analysisSize.w;
                 const sy = this.previewCanvas.height / analysisSize.h;
                 const ctx = this.previewCtx;
-                // Draw ALL stickers - no throttling
+                // Draw ALL stickers - no throttling (live overlay during putt)
                 const step = 1;
                 for (let i = 0, idx = 0; i < points.length && idx < images.length; i += step, idx += step) {
                     const imgSrc = images[idx];
@@ -1011,12 +1011,40 @@
                 off.height = this.previewCanvas.height;
                 const ctx = off.getContext('2d');
                 ctx.drawImage(this.previewCanvas, 0, 0);
-                const stepGlobal = 4; // draw every 4th detection for modal image
-                const maxStickers = 60;
+                const stepGlobal = 8; // draw every 8th detection for modal image (half the stickers)
+                const maxStickers = 30;
                 for (const putt of (allPutts || [])) {
                     const pts = putt.path_points || [];
                     const imgs = putt.path_images || [];
                     const step = stepGlobal;
+                    
+                    // First pass: collect sticker centers for arc line drawing
+                    const stickerCenters = [];
+                    for (let i = 0, idx = 0; i < pts.length && idx < imgs.length; i += step, idx += step) {
+                        const imgSrc = imgs[idx];
+                        if (!imgSrc) continue;
+                        const px = pts[i].x * (off.width / (this.previewCanvas.width));
+                        const py = pts[i].y * (off.height / (this.previewCanvas.height));
+                        stickerCenters.push({x: px, y: py, index: i});
+                    }
+                    
+                    // Second pass: draw red arc lines connecting sticker centers
+                    if (stickerCenters.length > 1) {
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)'; // Red color
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
+                        for (let j = 1; j < stickerCenters.length; j++) {
+                            ctx.lineTo(stickerCenters[j].x, stickerCenters[j].y);
+                        }
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                    
+                    // Third pass: draw stickers on top of arc lines
                     for (let i = 0, idx = 0; i < pts.length && idx < imgs.length; i += step, idx += step) {
                         const imgSrc = imgs[idx];
                         if (!imgSrc) continue;
@@ -1031,10 +1059,8 @@
                             const x = Math.round(px - w / 2);
                             const y = Math.round(py - h / 2);
                             ctx.save();
-                            ctx.save();
                             ctx.globalAlpha = 0.5;
                             ctx.drawImage(img, x, y, w, h);
-                                ctx.restore();
                             ctx.restore();
                         } catch {}
                     }
@@ -1073,8 +1099,33 @@
                     const imgs = putt.path_images || [];
                     const boxes = putt.path_boxes || [];
                     
-                    // Draw every 4th point for modal image
-                    const step = 4;
+                    // First pass: collect sticker centers for arc line drawing
+                    const stickerCenters = [];
+                    const step = 8; // Draw every 8th point for modal image (half the stickers)
+                    for (let i = 0; i < pts.length; i += step) {
+                        const point = pts[i];
+                        const px = point.x * sx;
+                        const py = point.y * sy;
+                        stickerCenters.push({x: px, y: py, index: i});
+                    }
+                    
+                    // Second pass: draw red arc lines connecting sticker centers
+                    if (stickerCenters.length > 1) {
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)'; // Red color
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
+                        for (let j = 1; j < stickerCenters.length; j++) {
+                            ctx.lineTo(stickerCenters[j].x, stickerCenters[j].y);
+                        }
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                    
+                    // Third pass: draw stickers on top of arc lines
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const imgSrc = imgs[i];
@@ -1093,8 +1144,10 @@
                                 const h = img.height * scale;
                                 
                                 // Draw with slight transparency and border
+                                ctx.save();
                                 ctx.globalAlpha = 0.5;
                                 ctx.drawImage(img, px - w/2, py - h/2, w, h);
+                                ctx.restore();
                                 
                                 // Border intentionally removed per requirement: stickers have no boxes
                             } catch (e) {
@@ -1148,8 +1201,34 @@
                 const sy = off.height / analysisSize.h;
                 
                 ctx.save();
-                // Draw every 4th point for modal image
-                const step = 4;
+                
+                // First pass: collect sticker centers for arc line drawing
+                const stickerCenters = [];
+                const step = 8; // Draw every 8th point for modal image (half the stickers)
+                for (let i = 0; i < points.length; i += step) {
+                    const point = points[i];
+                    const px = point.x * sx;
+                    const py = point.y * sy;
+                    stickerCenters.push({x: px, y: py, index: i});
+                }
+                
+                // Second pass: draw red arc lines connecting sticker centers
+                if (stickerCenters.length > 1) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)'; // Red color
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
+                    for (let j = 1; j < stickerCenters.length; j++) {
+                        ctx.lineTo(stickerCenters[j].x, stickerCenters[j].y);
+                    }
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                
+                // Third pass: draw stickers on top of arc lines
                 for (let i = 0; i < points.length; i += step) {
                     const point = points[i];
                     const imgSrc = images && images[i];
