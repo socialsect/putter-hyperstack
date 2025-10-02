@@ -1167,6 +1167,8 @@
                     
                     // Draw single clean SMOOTH arc line
                     if (arcCenters.length > 2) {
+                        // Sort by vertical position so the curve goes bottom-to-top
+                        const sortedArcCenters = arcCenters.slice().sort((a, b) => a.y - b.y);
                         ctx.save();
                         ctx.globalAlpha = 0.9;
                         ctx.strokeStyle = '#dc2626'; // Red color
@@ -1175,19 +1177,19 @@
                         ctx.lineJoin = 'round';
                         
                         ctx.beginPath();
-                        ctx.moveTo(arcCenters[0].x, arcCenters[0].y);
+                        ctx.moveTo(sortedArcCenters[0].x, sortedArcCenters[0].y);
                         
                         // Use quadratic curves for smooth arc
-                        for (let i = 1; i < arcCenters.length - 1; i++) {
-                            const xc = (arcCenters[i].x + arcCenters[i + 1].x) / 2;
-                            const yc = (arcCenters[i].y + arcCenters[i + 1].y) / 2;
-                            ctx.quadraticCurveTo(arcCenters[i].x, arcCenters[i].y, xc, yc);
+                        for (let i = 1; i < sortedArcCenters.length - 1; i++) {
+                            const xc = (sortedArcCenters[i].x + sortedArcCenters[i + 1].x) / 2;
+                            const yc = (sortedArcCenters[i].y + sortedArcCenters[i + 1].y) / 2;
+                            ctx.quadraticCurveTo(sortedArcCenters[i].x, sortedArcCenters[i].y, xc, yc);
                         }
                         
                         // Draw final segment
-                        if (arcCenters.length > 1) {
-                            const last = arcCenters[arcCenters.length - 1];
-                            const secondLast = arcCenters[arcCenters.length - 2];
+                        if (sortedArcCenters.length > 1) {
+                            const last = sortedArcCenters[sortedArcCenters.length - 1];
+                            const secondLast = sortedArcCenters[sortedArcCenters.length - 2];
                             ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
                         }
                         
@@ -1288,6 +1290,8 @@
                 
                 // Draw red arc line connecting sticker centers with SMOOTH CURVES
                 if (stickerCenters.length > 1) {
+                    // Sort by vertical position so the curve goes bottom-to-top
+                    const sortedStickerCenters = stickerCenters.slice().sort((a, b) => a.y - b.y);
                     ctx.save();
                     ctx.globalAlpha = 1.0;
                     ctx.strokeStyle = '#dc2626'; // Red color
@@ -1296,19 +1300,19 @@
                     ctx.lineJoin = 'round';
                     
                     ctx.beginPath();
-                    ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
+                    ctx.moveTo(sortedStickerCenters[0].x, sortedStickerCenters[0].y);
                     
                     // Use quadratic curves for smooth arc instead of straight lines
-                    for (let i = 1; i < stickerCenters.length - 1; i++) {
-                        const xc = (stickerCenters[i].x + stickerCenters[i + 1].x) / 2;
-                        const yc = (stickerCenters[i].y + stickerCenters[i + 1].y) / 2;
-                        ctx.quadraticCurveTo(stickerCenters[i].x, stickerCenters[i].y, xc, yc);
+                    for (let i = 1; i < sortedStickerCenters.length - 1; i++) {
+                        const xc = (sortedStickerCenters[i].x + sortedStickerCenters[i + 1].x) / 2;
+                        const yc = (sortedStickerCenters[i].y + sortedStickerCenters[i + 1].y) / 2;
+                        ctx.quadraticCurveTo(sortedStickerCenters[i].x, sortedStickerCenters[i].y, xc, yc);
                     }
                     
                     // Draw final segment
-                    if (stickerCenters.length > 1) {
-                        const last = stickerCenters[stickerCenters.length - 1];
-                        const secondLast = stickerCenters[stickerCenters.length - 2];
+                    if (sortedStickerCenters.length > 1) {
+                        const last = sortedStickerCenters[sortedStickerCenters.length - 1];
+                        const secondLast = sortedStickerCenters[sortedStickerCenters.length - 2];
                         ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
                     }
                     
