@@ -1165,39 +1165,68 @@
                         arcCenters.push({ x: px, y: py });
                     }
                     
-                    // Draw single clean STRAIGHT trend line via linear regression (x = a*y + b)
+                    // Draw single clean STRAIGHT trend line via robust linear regression (x = a*y + b)
                     if (arcCenters.length > 2) {
-                        // Compute linear regression treating x as function of y
+                        // 1) Initial regression treating x as function of y
                         let sumY = 0, sumX = 0, sumYY = 0, sumYX = 0;
-                        for (const p of arcCenters) {
-                            sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x;
+                        for (const p of arcCenters) { sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x; }
+                        const n0 = arcCenters.length;
+                        const denom0 = (n0 * sumYY - sumY * sumY) || 1e-6;
+                        let a0 = (n0 * sumYX - sumY * sumX) / denom0; // slope dx/dy
+                        let b0 = (sumX - a0 * sumY) / n0;             // intercept
+                        
+                        // 2) Compute residuals and MAD to reject outliers
+                        const residuals = arcCenters.map(p => (p.x - (a0 * p.y + b0)));
+                        const absRes = residuals.map(v => Math.abs(v));
+                        const median = (arr => { const s = [...arr].sort((a,b)=>a-b); const m = Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; })(absRes);
+                        const mad = median || 1e-6;
+                        const thresh = 2.5 * mad; // Robust threshold
+                        const inliers = arcCenters.filter((p, i) => Math.abs(residuals[i]) <= thresh);
+                        
+                        if (inliers.length >= 3) {
+                            // 3) Refit using inliers only
+                            let sY = 0, sX2 = 0, sYY2 = 0, sYX2 = 0;
+                            for (const p of inliers) { sY += p.y; sX2 += p.x; sYY2 += p.y * p.y; sYX2 += p.y * p.x; }
+                            const n = inliers.length;
+                            const denom = (n * sYY2 - sY * sY) || 1e-6;
+                            const a = (n * sYX2 - sY * sX2) / denom; // slope dx/dy
+                            const b = (sX2 - a * sY) / n;             // intercept
+                            
+                            // 4) Draw only across the inlier vertical span
+                            let minY = Infinity, maxY = -Infinity;
+                            for (const p of inliers) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                            const x1 = a * minY + b, y1 = minY;
+                            const x2 = a * maxY + b, y2 = maxY;
+                            
+                            ctx.save();
+                            ctx.globalAlpha = 0.95;
+                            ctx.strokeStyle = '#dc2626';
+                            ctx.lineWidth = 3;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.lineTo(x2, y2);
+                            ctx.stroke();
+                            ctx.restore();
+                        } else {
+                            // Fallback: draw fitted line across overall span
+                            let minY = Infinity, maxY = -Infinity;
+                            for (const p of arcCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                            const x1 = a0 * minY + b0, y1 = minY;
+                            const x2 = a0 * maxY + b0, y2 = maxY;
+                            ctx.save();
+                            ctx.globalAlpha = 0.95;
+                            ctx.strokeStyle = '#dc2626';
+                            ctx.lineWidth = 3;
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.lineTo(x2, y2);
+                            ctx.stroke();
+                            ctx.restore();
                         }
-                        const n = arcCenters.length;
-                        const denom = (n * sumYY - sumY * sumY) || 1e-6;
-                        const a = (n * sumYX - sumY * sumX) / denom; // slope dx/dy
-                        const b = (sumX - a * sumY) / n;             // intercept
-                        
-                        // Determine vertical span
-                        let minY = Infinity, maxY = -Infinity;
-                        for (const p of arcCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                        
-                        // Endpoints on the regression line
-                        const x1 = a * minY + b;
-                        const y1 = minY;
-                        const x2 = a * maxY + b;
-                        const y2 = maxY;
-                        
-                        ctx.save();
-                        ctx.globalAlpha = 0.95;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 3;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                        ctx.stroke();
-                        ctx.restore();
                     }
                 }
                 ctx.restore();
@@ -1291,39 +1320,68 @@
                     }
                 }
                 
-                // Draw red arc line as a STRAIGHT trend line via linear regression (x = a*y + b)
+                // Draw red arc line as a STRAIGHT robust trend line via linear regression (x = a*y + b)
                 if (stickerCenters.length > 2) {
-                    // Compute linear regression treating x as function of y
+                    // 1) Initial regression treating x as function of y
                     let sumY = 0, sumX = 0, sumYY = 0, sumYX = 0;
-                    for (const p of stickerCenters) {
-                        sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x;
+                    for (const p of stickerCenters) { sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x; }
+                    const n0 = stickerCenters.length;
+                    const denom0 = (n0 * sumYY - sumY * sumY) || 1e-6;
+                    let a0 = (n0 * sumYX - sumY * sumX) / denom0; // slope dx/dy
+                    let b0 = (sumX - a0 * sumY) / n0;             // intercept
+                    
+                    // 2) Compute residuals and MAD to reject outliers
+                    const residuals = stickerCenters.map(p => (p.x - (a0 * p.y + b0)));
+                    const absRes = residuals.map(v => Math.abs(v));
+                    const median = (arr => { const s = [...arr].sort((a,b)=>a-b); const m = Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; })(absRes);
+                    const mad = median || 1e-6;
+                    const thresh = 2.5 * mad; // Robust threshold
+                    const inliers = stickerCenters.filter((p, i) => Math.abs(residuals[i]) <= thresh);
+                    
+                    if (inliers.length >= 3) {
+                        // 3) Refit using inliers only
+                        let sY = 0, sX2 = 0, sYY2 = 0, sYX2 = 0;
+                        for (const p of inliers) { sY += p.y; sX2 += p.x; sYY2 += p.y * p.y; sYX2 += p.y * p.x; }
+                        const n = inliers.length;
+                        const denom = (n * sYY2 - sY * sY) || 1e-6;
+                        const a = (n * sYX2 - sY * sX2) / denom; // slope dx/dy
+                        const b = (sX2 - a * sY) / n;             // intercept
+                        
+                        // 4) Draw only across the inlier vertical span
+                        let minY = Infinity, maxY = -Infinity;
+                        for (const p of inliers) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                        const x1 = a * minY + b, y1 = minY;
+                        const x2 = a * maxY + b, y2 = maxY;
+                        
+                        ctx.save();
+                        ctx.globalAlpha = 0.95;
+                        ctx.strokeStyle = '#dc2626';
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                        ctx.restore();
+                    } else {
+                        // Fallback: draw fitted line across overall span
+                        let minY = Infinity, maxY = -Infinity;
+                        for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                        const x1 = a0 * minY + b0, y1 = minY;
+                        const x2 = a0 * maxY + b0, y2 = maxY;
+                        ctx.save();
+                        ctx.globalAlpha = 0.95;
+                        ctx.strokeStyle = '#dc2626';
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                        ctx.restore();
                     }
-                    const n = stickerCenters.length;
-                    const denom = (n * sumYY - sumY * sumY) || 1e-6;
-                    const a = (n * sumYX - sumY * sumX) / denom; // slope dx/dy
-                    const b = (sumX - a * sumY) / n;             // intercept
-                    
-                    // Determine vertical span
-                    let minY = Infinity, maxY = -Infinity;
-                    for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                    
-                    // Endpoints on the regression line
-                    const x1 = a * minY + b;
-                    const y1 = minY;
-                    const x2 = a * maxY + b;
-                    const y2 = maxY;
-                    
-                    ctx.save();
-                    ctx.globalAlpha = 0.95;
-                    ctx.strokeStyle = '#dc2626';
-                    ctx.lineWidth = 3;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    ctx.beginPath();
-                    ctx.moveTo(x1, y1);
-                    ctx.lineTo(x2, y2);
-                    ctx.stroke();
-                    ctx.restore();
                 }
                 
                 ctx.restore();
