@@ -1165,7 +1165,7 @@
                         arcCenters.push({ x: px, y: py });
                     }
                     
-                    // Draw single clean arc line
+                    // Draw single clean SMOOTH arc line
                     if (arcCenters.length > 2) {
                         ctx.save();
                         ctx.globalAlpha = 0.9;
@@ -1176,9 +1176,21 @@
                         
                         ctx.beginPath();
                         ctx.moveTo(arcCenters[0].x, arcCenters[0].y);
-                        for (let i = 1; i < arcCenters.length; i++) {
-                            ctx.lineTo(arcCenters[i].x, arcCenters[i].y);
+                        
+                        // Use quadratic curves for smooth arc
+                        for (let i = 1; i < arcCenters.length - 1; i++) {
+                            const xc = (arcCenters[i].x + arcCenters[i + 1].x) / 2;
+                            const yc = (arcCenters[i].y + arcCenters[i + 1].y) / 2;
+                            ctx.quadraticCurveTo(arcCenters[i].x, arcCenters[i].y, xc, yc);
                         }
+                        
+                        // Draw final segment
+                        if (arcCenters.length > 1) {
+                            const last = arcCenters[arcCenters.length - 1];
+                            const secondLast = arcCenters[arcCenters.length - 2];
+                            ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
+                        }
+                        
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -1274,7 +1286,7 @@
                     }
                 }
                 
-                // Draw red arc line connecting sticker centers
+                // Draw red arc line connecting sticker centers with SMOOTH CURVES
                 if (stickerCenters.length > 1) {
                     ctx.save();
                     ctx.globalAlpha = 1.0;
@@ -1285,9 +1297,21 @@
                     
                     ctx.beginPath();
                     ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
-                    for (let i = 1; i < stickerCenters.length; i++) {
-                        ctx.lineTo(stickerCenters[i].x, stickerCenters[i].y);
+                    
+                    // Use quadratic curves for smooth arc instead of straight lines
+                    for (let i = 1; i < stickerCenters.length - 1; i++) {
+                        const xc = (stickerCenters[i].x + stickerCenters[i + 1].x) / 2;
+                        const yc = (stickerCenters[i].y + stickerCenters[i + 1].y) / 2;
+                        ctx.quadraticCurveTo(stickerCenters[i].x, stickerCenters[i].y, xc, yc);
                     }
+                    
+                    // Draw final segment
+                    if (stickerCenters.length > 1) {
+                        const last = stickerCenters[stickerCenters.length - 1];
+                        const secondLast = stickerCenters[stickerCenters.length - 2];
+                        ctx.quadraticCurveTo(secondLast.x, secondLast.y, last.x, last.y);
+                    }
+                    
                     ctx.stroke();
                     ctx.restore();
                 }
