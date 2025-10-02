@@ -843,12 +843,31 @@
                                 }
                                 // Capture the last visible frame (with overlays) as a JPEG for the modal
                                 try {
-                                    const dataUrl = this.previewCanvas.toDataURL('image/jpeg', 0.9);
-                                    if (dataUrl && dataUrl.startsWith('data:image')) {
-                                        data.result_image = dataUrl;
+                                    // Ensure we capture a valid frame
+                                    let capturedImage = null;
+                                    
+                                    // Try preview canvas first
+                                    if (this.previewCanvas && this.previewCanvas.width > 0) {
+                                        capturedImage = this.previewCanvas.toDataURL('image/jpeg', 0.9);
+                                    }
+                                    
+                                    // Fallback to video frame if preview fails
+                                    if (!capturedImage && this.video && this.video.videoWidth > 0) {
+                                        const tempCanvas = document.createElement('canvas');
+                                        tempCanvas.width = this.video.videoWidth;
+                                        tempCanvas.height = this.video.videoHeight;
+                                        const tempCtx = tempCanvas.getContext('2d');
+                                        tempCtx.drawImage(this.video, 0, 0);
+                                        capturedImage = tempCanvas.toDataURL('image/jpeg', 0.9);
+                                    }
+                                    
+                                    if (capturedImage && capturedImage.startsWith('data:image')) {
+                                        data.result_image = capturedImage;
                                         try { window.__lastData = data; } catch (_) {}
                                     }
-                                } catch (_) {}
+                                } catch (e) {
+                                    console.warn('Failed to capture putt completion frame:', e);
+                                }
                                 // Small pause to let user see path (mobile-friendly)
                                 await new Promise(r => setTimeout(r, 1200));
                                 this.clearOverlay();
@@ -1442,9 +1461,9 @@
                     }
                 }
                 // ALWAYS generate dots image - prioritize all putts, fallback to single putt, then raw frame
+                let dotsImage = null;
+                
                 try {
-                    let dotsImage = null;
-                    
                     // First try: all putts dots composite (use captured base image if available)
                     if (Array.isArray(data.all_putt_overlays) && data.all_putt_overlays.length > 0) {
                         const baseSrc = data.result_image || data.first_frame_image || null;
@@ -1454,7 +1473,11 @@
                             baseSrc
                         );
                     }
-                    
+                } catch (e) {
+                    console.warn('Failed to generate all putts composite:', e);
+                }
+                
+                try {
                     // Second try: single putt cropped images
                     if (!dotsImage && Array.isArray(data.path_points) && data.path_points.length > 0) {
                         const baseSrc = data.result_image || data.first_frame_image || null;
@@ -1466,36 +1489,87 @@
                             baseSrc
                         );
                     }
-                    
-                    // Final fallback: captured result image, then preview
+                } catch (e) {
+                    console.warn('Failed to generate single putt composite:', e);
+                }
+                
+                // Fallback strategies - ensure we ALWAYS have an image
+                try {
                     if (!dotsImage && data.result_image) {
                         dotsImage = String(data.result_image);
-                    } else if (!dotsImage && this.previewCanvas) {
-                        dotsImage = this.previewCanvas.toDataURL('image/png');
-                    }
-                    
-                    // Display the image
-                    if (dotsImage && dotsImage.startsWith('data:image')) {
-                        const rEl = this.resultsRight.querySelector('img.result-frame');
-                        if (rEl) {
-                            rEl.src = dotsImage;
-                        } else {
-                            const wrap = this.resultsRight;
-                            const cap = document.createElement('div');
-                            cap.className = 'metric';
-                            cap.innerHTML = '<span class="name">Result Image</span><span class="value"></span>';
-                            wrap.appendChild(cap);
-                            const img = new Image();
-                            img.alt = 'Result frame';
-                            img.style.cssText = 'width:100%; border-radius:8px; border:1px solid #1f2937; display:block;';
-                            img.src = dotsImage;
-                            wrap.appendChild(img);
-                        }
-                        // Store for potential reuse
-                        data.result_image = dotsImage;
                     }
                 } catch (e) {
-                    console.warn('Failed to generate dots image:', e);
+                    console.warn('Failed to use captured result image:', e);
+                }
+                
+                try {
+                    if (!dotsImage && this.previewCanvas) {
+                        dotsImage = this.previewCanvas.toDataURL('image/png');
+                    }
+                } catch (e) {
+                    console.warn('Failed to capture preview canvas:', e);
+                }
+                
+                // Last resort: capture video frame directly if canvas fails
+                try {
+                    if (!dotsImage && this.video && this.video.videoWidth > 0) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = this.video.videoWidth;
+                        canvas.height = this.video.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(this.video, 0, 0);
+                        dotsImage = canvas.toDataURL('image/jpeg', 0.8);
+                    }
+                } catch (e) {
+                    console.warn('Failed to capture video frame:', e);
+                }
+                
+                // Ultimate fallback: create a placeholder image
+                if (!dotsImage || !dotsImage.startsWith('data:image')) {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 400;
+                        canvas.height = 300;
+                        const ctx = canvas.getContext('2d');
+                        
+                        // Draw placeholder
+                        ctx.fillStyle = '#1f2937';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#9ca3af';
+                        ctx.font = '24px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('Session Complete', canvas.width/2, canvas.height/2 - 20);
+                        ctx.font = '16px Arial';
+                        ctx.fillText('Image unavailable', canvas.width/2, canvas.height/2 + 20);
+                        
+                        dotsImage = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        console.error('Failed to create placeholder image:', e);
+                    }
+                }
+                
+                // Display the image (guaranteed to have one now)
+                if (dotsImage && dotsImage.startsWith('data:image')) {
+                    const rEl = this.resultsRight.querySelector('img.result-frame');
+                    if (rEl) {
+                        rEl.src = dotsImage;
+                        rEl.style.display = 'block';
+                    } else {
+                        const wrap = this.resultsRight;
+                        const cap = document.createElement('div');
+                        cap.className = 'metric';
+                        cap.innerHTML = '<span class="name">Result Image</span><span class="value"></span>';
+                        wrap.appendChild(cap);
+                        const img = new Image();
+                        img.alt = 'Result frame';
+                        img.style.cssText = 'width:100%; border-radius:8px; border:1px solid #1f2937; display:block;';
+                        img.src = dotsImage;
+                        wrap.appendChild(img);
+                    }
+                    // Store for potential reuse
+                    data.result_image = dotsImage;
+                } else {
+                    console.error('All image generation methods failed');
                 }
                 this.resultsModal.classList.add('show');
             }
