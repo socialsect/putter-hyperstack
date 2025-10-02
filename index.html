@@ -1068,14 +1068,14 @@
                 
                 // draw cropped putter images instead of dots
                 ctx.save();
-                // Collect ALL sticker centers from ALL putts for single red arc line
-                const allStickerCenters = [];
                 
                 for (const putt of (allPutts || [])) {
                     const pts = putt.path_points || [];
                     const imgs = putt.path_images || [];
                     const boxes = putt.path_boxes || [];
                     
+                    // Collect sticker centers for this putt's arc line
+                    const puttStickerCenters = [];
                     const step = 8;
                     
                     // Draw every 8th point for modal image (halved sticker count)
@@ -1090,8 +1090,8 @@
                                 const px = point.x * sx;
                                 const py = point.y * sy;
                                 
-                                // Store center for single arc line across all putts
-                                allStickerCenters.push({ x: px, y: py });
+                                // Store center for this putt's arc line
+                                puttStickerCenters.push({ x: px, y: py });
                                 
                                 // Scale the cropped putter image
                                 const maxSize = Math.min(off.width, off.height) * 0.08;
@@ -1109,8 +1109,8 @@
                                 const px = point.x * sx;
                                 const py = point.y * sy;
                                 
-                                // Store center for single arc line across all putts
-                                allStickerCenters.push({ x: px, y: py });
+                                // Store center for this putt's arc line
+                                puttStickerCenters.push({ x: px, y: py });
                                 
                                 ctx.fillStyle = 'rgba(34,197,94,0.95)';
                                 const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
@@ -1123,8 +1123,8 @@
                             const px = point.x * sx;
                             const py = point.y * sy;
                             
-                            // Store center for single arc line across all putts
-                            allStickerCenters.push({ x: px, y: py });
+                            // Store center for this putt's arc line
+                            puttStickerCenters.push({ x: px, y: py });
                             
                             ctx.fillStyle = 'rgba(34,197,94,0.95)';
                             const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
@@ -1134,24 +1134,23 @@
                         }
                     }
                     
-                }
-                
-                // Draw single red arc line connecting ALL sticker centers from ALL putts
-                if (allStickerCenters.length > 1) {
-                    ctx.save();
-                    ctx.globalAlpha = 1.0;
-                    ctx.strokeStyle = '#dc2626'; // Red color
-                    ctx.lineWidth = 3;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(allStickerCenters[0].x, allStickerCenters[0].y);
-                    for (let i = 1; i < allStickerCenters.length; i++) {
-                        ctx.lineTo(allStickerCenters[i].x, allStickerCenters[i].y);
+                    // Draw red arc line for this individual putt (consecutive frames)
+                    if (puttStickerCenters.length > 1) {
+                        ctx.save();
+                        ctx.globalAlpha = 1.0;
+                        ctx.strokeStyle = '#dc2626'; // Red color
+                        ctx.lineWidth = 3;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(puttStickerCenters[0].x, puttStickerCenters[0].y);
+                        for (let i = 1; i < puttStickerCenters.length; i++) {
+                            ctx.lineTo(puttStickerCenters[i].x, puttStickerCenters[i].y);
+                        }
+                        ctx.stroke();
+                        ctx.restore();
                     }
-                    ctx.stroke();
-                    ctx.restore();
                 }
                 ctx.restore();
                 return off.toDataURL('image/png');
