@@ -1116,9 +1116,6 @@
                                 const px = point.x * sx;
                                 const py = point.y * sy;
                                 
-                                // Store center for arc line
-                                stickerCenters.push({ x: px, y: py });
-                                
                                 // Scale the cropped putter image
                                 const maxSize = Math.min(off.width, off.height) * 0.08;
                                 const scale = Math.min(maxSize / Math.max(img.width, img.height), 1.0);
@@ -1145,9 +1142,6 @@
                             const px = point.x * sx;
                             const py = point.y * sy;
                             
-                            // Store center for arc line even for fallback dots
-                            stickerCenters.push({ x: px, y: py });
-                            
                             ctx.fillStyle = 'rgba(34,197,94,0.95)';
                             const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
                             ctx.beginPath();
@@ -1157,97 +1151,51 @@
                     }
                 }
                 
-                // Draw single clean QUADRATIC arc via least squares fit (x = a*y^2 + b*y + c)
-                if (stickerCenters.length > 2) {
-                    let drew = false;
-                    // Accumulate sums for quadratic least squares
-                    let sumY = 0, sumY2 = 0, sumY3 = 0, sumY4 = 0;
-                    let sumX = 0, sumXY = 0, sumXY2 = 0;
-                    for (const p of stickerCenters) {
-                        const y = p.y;
-                        const y2 = y * y;
-                        sumY += y;
-                        sumY2 += y2;
-                        sumY3 += y2 * y;
-                        sumY4 += y2 * y2;
-                        sumX += p.x;
-                        sumXY += p.x * y;
-                        sumXY2 += p.x * y2;
+                // Draw ONE red arc line only for the longest putt
+                if (longestPutt && longestPutt.path_points && longestPutt.path_points.length > 5) {
+                    const pts = longestPutt.path_points;
+                    const step = 8;
+                    const arcCenters = [];
+                    
+                    // Collect centers for the longest putt only
+                    for (let i = 0; i < pts.length; i += step) {
+                        const point = pts[i];
+                        const px = point.x * sx;
+                        const py = point.y * sy;
+                        arcCenters.push({ x: px, y: py });
                     }
-                    const n = stickerCenters.length;
-                    const denom = n * (sumY2 * sumY4 - sumY3 * sumY3)
-                                - sumY * (sumY * sumY4 - sumY3 * sumY2)
-                                + sumY2 * (sumY * sumY3 - sumY2 * sumY2);
-                    if (Math.abs(denom) > 1e-10) {
-                        const a = (n * (sumXY2 * sumY2 - sumXY * sumY3)
-                                  - sumX * (sumY2 * sumY2 - sumY3 * sumY)
-                                  + sumXY * (sumY * sumY3 - sumY2 * sumY2)) / denom;
-                        const b = (n * (sumY4 * sumXY - sumY3 * sumXY2)
-                                  - sumY * (sumY3 * sumXY - sumY2 * sumXY2)
-                                  + sumY2 * (sumY2 * sumXY2 - sumY3 * sumXY)) / denom;
-                        const c = (sumX - b * sumY - a * sumY2) / n;
+                    
+                    // Draw single clean STRAIGHT trend line via linear regression (x = a*y + b)
+                    if (arcCenters.length > 2) {
+                        // Compute linear regression treating x as function of y
+                        let sumY = 0, sumX = 0, sumYY = 0, sumYX = 0;
+                        for (const p of arcCenters) {
+                            sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x;
+                        }
+                        const n = arcCenters.length;
+                        const denom = (n * sumYY - sumY * sumY) || 1e-6;
+                        const a = (n * sumYX - sumY * sumX) / denom; // slope dx/dy
+                        const b = (sumX - a * sumY) / n;             // intercept
+                        
                         // Determine vertical span
                         let minY = Infinity, maxY = -Infinity;
-                        for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                        // Draw smooth quadratic curve
-                        ctx.save();
-                        ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        const steps = 50;
-                        for (let i = 0; i <= steps; i++) {
-                            const t = i / steps;
-                            const y = minY + t * (maxY - minY);
-                            const x = a * y * y + b * y + c;
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                        ctx.stroke();
-                        ctx.restore();
-                        drew = true;
-                    }
-                    if (!drew) {
-                        // Fallback to straight line fit
-                        let sumYY = sumY2;
-                        let sumYX = sumXY;
-                        const denomLin = (n * sumYY - sumY * sumY) || 1e-6;
-                        const aLin = (n * sumYX - sumY * sumX) / denomLin;
-                        const bLin = (sumX - aLin * sumY) / n;
-                        let minY = Infinity, maxY = -Infinity;
-                        for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                        const x1 = aLin * minY + bLin;
+                        for (const p of arcCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                        
+                        // Endpoints on the regression line
+                        const x1 = a * minY + b;
                         const y1 = minY;
-                        const x2 = aLin * maxY + bLin;
+                        const x2 = a * maxY + b;
                         const y2 = maxY;
+                        
                         ctx.save();
-                        ctx.globalAlpha = 1.0;
+                        ctx.globalAlpha = 0.95;
                         ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
+                        ctx.lineWidth = 3;
                         ctx.lineCap = 'round';
                         ctx.lineJoin = 'round';
                         ctx.beginPath();
                         ctx.moveTo(x1, y1);
                         ctx.lineTo(x2, y2);
-                        ctx.stroke();
-                        ctx.restore();
-                        drew = true;
-                    }
-                    if (!drew && stickerCenters.length >= 2) {
-                        // Final fallback: connect first and last centers
-                        const sorted = stickerCenters.slice().sort((a,b)=>a.y-b.y);
-                        const p1 = sorted[0], p2 = sorted[sorted.length-1];
-                        ctx.save();
-                        ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
                         ctx.stroke();
                         ctx.restore();
                     }
@@ -1343,100 +1291,39 @@
                     }
                 }
                 
-                // Draw red arc as a QUADRATIC curve via least squares fit (x = a*y^2 + b*y + c)
+                // Draw red arc line as a STRAIGHT trend line via linear regression (x = a*y + b)
                 if (stickerCenters.length > 2) {
-                    let drew = false;
-                    // Accumulate sums for quadratic least squares
-                    let sumY = 0, sumY2 = 0, sumY3 = 0, sumY4 = 0;
-                    let sumX = 0, sumXY = 0, sumXY2 = 0;
+                    // Compute linear regression treating x as function of y
+                    let sumY = 0, sumX = 0, sumYY = 0, sumYX = 0;
                     for (const p of stickerCenters) {
-                        const y = p.y;
-                        const y2 = y * y;
-                        sumY += y;
-                        sumY2 += y2;
-                        sumY3 += y2 * y;
-                        sumY4 += y2 * y2;
-                        sumX += p.x;
-                        sumXY += p.x * y;
-                        sumXY2 += p.x * y2;
+                        sumY += p.y; sumX += p.x; sumYY += p.y * p.y; sumYX += p.y * p.x;
                     }
                     const n = stickerCenters.length;
-                    const denom = n * (sumY2 * sumY4 - sumY3 * sumY3)
-                                - sumY * (sumY * sumY4 - sumY3 * sumY2)
-                                + sumY2 * (sumY * sumY3 - sumY2 * sumY2);
-                    if (Math.abs(denom) > 1e-10) {
-                        const a = (n * (sumXY2 * sumY2 - sumXY * sumY3)
-                                  - sumX * (sumY2 * sumY2 - sumY3 * sumY)
-                                  + sumXY * (sumY * sumY3 - sumY2 * sumY2)) / denom;
-                        const b = (n * (sumY4 * sumXY - sumY3 * sumXY2)
-                                  - sumY * (sumY3 * sumXY - sumY2 * sumXY2)
-                                  + sumY2 * (sumY2 * sumXY2 - sumY3 * sumXY)) / denom;
-                        const c = (sumX - b * sumY - a * sumY2) / n;
-                        // Determine vertical span
-                        let minY = Infinity, maxY = -Infinity;
-                        for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                        // Draw smooth quadratic curve
-                        ctx.save();
-                        ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        const steps = 50;
-                        for (let i = 0; i <= steps; i++) {
-                            const t = i / steps;
-                            const y = minY + t * (maxY - minY);
-                            const x = a * y * y + b * y + c;
-                            if (i === 0) ctx.moveTo(x, y);
-                            else ctx.lineTo(x, y);
-                        }
-                        ctx.stroke();
-                        ctx.restore();
-                        drew = true;
-                    }
-                    if (!drew) {
-                        // Fallback to straight-line regression to ensure visibility
-                        let sumYY = sumY2;
-                        let sumYX = sumXY;
-                        const denomLin = (n * sumYY - sumY * sumY) || 1e-6;
-                        const aLin = (n * sumYX - sumY * sumX) / denomLin; // slope dx/dy
-                        const bLin = (sumX - aLin * sumY) / n;             // intercept
-                        let minY = Infinity, maxY = -Infinity;
-                        for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
-                        const x1 = aLin * minY + bLin;
-                        const y1 = minY;
-                        const x2 = aLin * maxY + bLin;
-                        const y2 = maxY;
-                        ctx.save();
-                        ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        ctx.moveTo(x1, y1);
-                        ctx.lineTo(x2, y2);
-                        ctx.stroke();
-                        ctx.restore();
-                        drew = true;
-                    }
-                    if (!drew && stickerCenters.length >= 2) {
-                        // Final fallback: connect first and last centers
-                        const sorted = stickerCenters.slice().sort((a,b)=>a.y-b.y);
-                        const p1 = sorted[0], p2 = sorted[sorted.length-1];
-                        ctx.save();
-                        ctx.globalAlpha = 1.0;
-                        ctx.strokeStyle = '#dc2626';
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                        ctx.restore();
-                    }
+                    const denom = (n * sumYY - sumY * sumY) || 1e-6;
+                    const a = (n * sumYX - sumY * sumX) / denom; // slope dx/dy
+                    const b = (sumX - a * sumY) / n;             // intercept
+                    
+                    // Determine vertical span
+                    let minY = Infinity, maxY = -Infinity;
+                    for (const p of stickerCenters) { if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y; }
+                    
+                    // Endpoints on the regression line
+                    const x1 = a * minY + b;
+                    const y1 = minY;
+                    const x2 = a * maxY + b;
+                    const y2 = maxY;
+                    
+                    ctx.save();
+                    ctx.globalAlpha = 0.95;
+                    ctx.strokeStyle = '#dc2626';
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                    ctx.restore();
                 }
                 
                 ctx.restore();
@@ -1789,7 +1676,7 @@
                         this.setStatus('Session started — Make your first putt', 'detecting');
                         if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
                         
-                        
+                        // Show start zone when session starts
                         if (START_ZONE_ENABLED) {
                             this.updateStartZone({ 
                                 start_zone_enabled: true, 
