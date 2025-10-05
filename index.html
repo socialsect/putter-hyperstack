@@ -468,39 +468,6 @@
             margin-left: 4px;
         }
 
-        /* Validation feedback styles */
-        .validation-feedback {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            text-align: center;
-            z-index: 15;
-            max-width: 80%;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        }
-
-        .validation-feedback.error {
-            background: rgba(220, 38, 38, 0.9);
-            border: 2px solid #dc2626;
-        }
-
-        .validation-feedback.warning {
-            background: rgba(245, 158, 11, 0.9);
-            border: 2px solid #f59e0b;
-        }
-
-        .validation-feedback.success {
-            background: rgba(34, 197, 94, 0.9);
-            border: 2px solid #22c55e;
-        }
-
         /* Mobile full-screen modal */
         @media (max-width: 600px) {
             .modal-backdrop { padding: 0; }
@@ -577,7 +544,6 @@
                         <div class="status-floating" id="statusFloating">Ready</div>
                         <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
                             role="status"></div>
-                        <div id="validationFeedback" class="validation-feedback" style="display: none;"></div>
                         <div class="controls-floating">
                             <div style="display:flex; gap:8px;">
                                 <button id="cameraBtn" class="btn-success">Use Camera</button>
@@ -644,7 +610,6 @@
                 this.startZone = document.getElementById('startZone');
                 this.armedBadge = document.getElementById('armedBadge');
                 this.rttBadge = document.getElementById('rttBadge');
-                this.validationFeedback = document.getElementById('validationFeedback');
                 const closeA = document.getElementById('closeResults');
                 const closeB = document.getElementById('closeResults2');
                 if (closeA) closeA.onclick = () => this.hideResults();
@@ -769,27 +734,6 @@
                 this.rttBadge.style.display = 'inline-block';
             }
 
-            showValidationFeedback(message, type = 'error', duration = 3000) {
-                if (!this.validationFeedback) return;
-                
-                this.validationFeedback.textContent = message;
-                this.validationFeedback.className = `validation-feedback ${type}`;
-                this.validationFeedback.style.display = 'block';
-                
-                // Auto-hide after duration
-                clearTimeout(this._validationHideT);
-                this._validationHideT = setTimeout(() => {
-                    this.validationFeedback.style.display = 'none';
-                }, duration);
-            }
-
-            hideValidationFeedback() {
-                if (this.validationFeedback) {
-                    this.validationFeedback.style.display = 'none';
-                }
-                clearTimeout(this._validationHideT);
-            }
-
             async startCamera() {
                 try {
                     this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
@@ -889,25 +833,6 @@
                             this.updateStartZone(data);
                             // If a putt just completed, draw the overlay path and pause momentarily
                             if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                                // Check validation result and show feedback
-                                const lastPutt = data.putts && data.putts[data.putts.length - 1];
-                                if (lastPutt && lastPutt.validation_result) {
-                                    const validation = lastPutt.validation_result;
-                                    if (!validation.is_valid) {
-                                        // Show validation errors
-                                        const errorMsg = validation.validation_errors.join(', ');
-                                        this.showValidationFeedback(`Putt rejected: ${errorMsg}`, 'error', 4000);
-                                        return; // Don't show completion overlay for invalid putts
-                                    } else if (validation.validation_warnings && validation.validation_warnings.length > 0) {
-                                        // Show validation warnings
-                                        const warningMsg = validation.validation_warnings.join(', ');
-                                        this.showValidationFeedback(`Warning: ${warningMsg}`, 'warning', 3000);
-                                    } else {
-                                        // Show success feedback
-                                        this.showValidationFeedback(`Putt validated! Quality: ${Math.round(validation.overall_score * 100)}%`, 'success', 2000);
-                                    }
-                                }
-                                
                                 // Announce completion visually and with light haptics
                                 this.showPuttComplete((data.putts || []).length);
                                 // Prefer sticker overlay using cropped images if provided
@@ -1684,25 +1609,6 @@
                                 this.renderResults(data);
                                 this.updateStartZone(data);
                                 if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                                    // Check validation result and show feedback
-                                    const lastPutt = data.putts && data.putts[data.putts.length - 1];
-                                    if (lastPutt && lastPutt.validation_result) {
-                                        const validation = lastPutt.validation_result;
-                                        if (!validation.is_valid) {
-                                            // Show validation errors
-                                            const errorMsg = validation.validation_errors.join(', ');
-                                            this.showValidationFeedback(`Putt rejected: ${errorMsg}`, 'error', 4000);
-                                            return; // Don't show completion overlay for invalid putts
-                                        } else if (validation.validation_warnings && validation.validation_warnings.length > 0) {
-                                            // Show validation warnings
-                                            const warningMsg = validation.validation_warnings.join(', ');
-                                            this.showValidationFeedback(`Warning: ${warningMsg}`, 'warning', 3000);
-                                        } else {
-                                            // Show success feedback
-                                            this.showValidationFeedback(`Putt validated! Quality: ${Math.round(validation.overall_score * 100)}%`, 'success', 2000);
-                                        }
-                                    }
-                                    
                                     this.showPuttComplete((data.putts || []).length);
                                     if (data.path_images && data.path_images.length) {
                                         this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
