@@ -522,7 +522,7 @@
         };
         
         // Backend configuration constants (must match backend settings)
-        const TARGET_SIZE = 512; // Must match TARGET_SIZE in new.py
+        const TARGET_SIZE = 384; // Must match TARGET_SIZE in new.py
     </script>
 </head>
 
@@ -736,15 +736,7 @@
 
             async startCamera() {
                 try {
-                    this.stream = await navigator.mediaDevices.getUserMedia({
-                        video: {
-                            facingMode: 'environment',
-                            width: { ideal: 1920 },
-                            height: { ideal: 1080 },
-                            frameRate: { ideal: 30 }
-                        },
-                        audio: false
-                    });
+                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
                     this.video.srcObject = this.stream;
                     this.video.style.display = 'block';
                     await this.video.play();
@@ -809,7 +801,7 @@
                     // draw frame
                     if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
                         this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.9));
+                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.7));
 
                         // show local preview
                         this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
@@ -1663,7 +1655,7 @@
                             while (this.running && this.stream) {
                                 if (!this.ws || this.ws.readyState !== 1) { await new Promise(r => setTimeout(r, 40)); continue; }
                                 this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                                const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/webp', 0.8));
+                                const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/webp', 0.55));
                                 if (!blob) { await new Promise(r => setTimeout(r, 12)); continue; }
                                 this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
                                 this.drawReferenceLine();
