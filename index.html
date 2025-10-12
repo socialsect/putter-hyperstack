@@ -5,6 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Putter Arc Analyzer ()</title>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -14,22 +16,23 @@
 
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            background: #0f172a;
-            color: #0b132b;
+            background: #000000;
+            color: #ffffff;
         }
 
         .container {
             max-width: 1100px;
             margin: 0 auto;
-            background: #ffffff;
+            background: #000000;
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 20px 60px rgba(203, 0, 0, 0.3);
+            border: 2px solid #cb0000;
         }
 
         .header {
-            background: linear-gradient(135deg, #2563eb, #22c55e);
-            color: #fff;
+            background: linear-gradient(135deg, #cb0000, #8b0000);
+            color: #ffffff;
             padding: 24px;
             text-align: center;
         }
@@ -37,6 +40,9 @@
         .header h1 {
             font-size: 28px;
             font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .content {
@@ -200,21 +206,43 @@
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
         }
 
         .btn-primary {
-            background: #2563eb;
+            background: #cb0000;
             color: #fff;
+            border: 1px solid #cb0000;
+        }
+
+        .btn-primary:hover {
+            background: #a00000;
+            border-color: #a00000;
         }
 
         .btn-success {
             background: #16a34a;
             color: #fff;
+            border: 1px solid #16a34a;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+            border-color: #15803d;
         }
 
         .btn-danger {
             background: #dc2626;
             color: #fff;
+            border: 1px solid #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
         }
 
         .status {
@@ -226,18 +254,21 @@
         }
 
         .status.waiting {
-            background: #eff6ff;
-            color: #1e40af;
+            background: rgba(203, 0, 0, 0.1);
+            color: #ffffff;
+            border: 1px solid #cb0000;
         }
 
         .status.detecting {
-            background: #fef9c3;
-            color: #854d0e;
+            background: rgba(203, 0, 0, 0.2);
+            color: #ffffff;
+            border: 1px solid #cb0000;
         }
 
         .status.completed {
-            background: #dcfce7;
-            color: #14532d;
+            background: rgba(34, 197, 94, 0.2);
+            color: #ffffff;
+            border: 1px solid #22c55e;
         }
 
         .putts {
@@ -248,10 +279,11 @@
         }
 
         .putt {
-            background: #fff;
-            border: 1px solid #e5e7eb;
+            background: #1a1a1a;
+            border: 1px solid #cb0000;
             border-radius: 10px;
             padding: 12px;
+            color: #ffffff;
         }
 
         .pill {
@@ -263,13 +295,15 @@
         }
 
         .pill-ok {
-            background: #dcfce7;
-            color: #166534;
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid #22c55e;
         }
 
         .pill-warn {
-            background: #fee2e2;
-            color: #b91c1c;
+            background: rgba(203, 0, 0, 0.2);
+            color: #cb0000;
+            border: 1px solid #cb0000;
         }
 
         /* Results modal */
@@ -288,12 +322,13 @@
         }
 
         .modal {
-            background: #0f172a;
-            color: #e2e8f0;
+            background: #000000;
+            color: #ffffff;
             width: min(920px, 92vw);
             border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 80px rgba(203, 0, 0, 0.5);
+            border: 2px solid #cb0000;
             display: flex;
             flex-direction: column;
             max-height: 90vh;
@@ -304,8 +339,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 16px 20px;
-            background: #111827;
-            border-bottom: 1px solid #1f2937;
+            background: #cb0000;
+            border-bottom: 1px solid #cb0000;
             flex: 0 0 auto;
             position: sticky;
             top: 0;
@@ -315,6 +350,8 @@
         .modal-title {
             font-weight: 800;
             font-size: 18px;
+            display: flex;
+            align-items: center;
         }
 
         .modal-body {
@@ -337,8 +374,8 @@
         }
 
         .panel {
-            background: #111827;
-            border: 1px solid #1f2937;
+            background: #1a1a1a;
+            border: 1px solid #cb0000;
             border-radius: 12px;
             padding: 12px;
         }
@@ -351,28 +388,29 @@
         }
 
         .metric .name {
-            color: #cbd5e1;
+            color: #ffffff;
             font-weight: 700;
             font-size: 14px;
         }
 
         .metric .value {
-            color: #fff;
+            color: #cb0000;
             font-weight: 900;
         }
 
         .bar {
             height: 10px;
-            background: #1f2937;
+            background: #1a1a1a;
             border-radius: 999px;
             overflow: hidden;
             margin-top: 6px;
+            border: 1px solid #cb0000;
         }
 
         .bar>span {
             display: block;
             height: 100%;
-            background: linear-gradient(90deg, #22c55e, #16a34a);
+            background: linear-gradient(90deg, #cb0000, #8b0000);
             width: 0%;
             transition: width .6s ease;
         }
@@ -386,21 +424,23 @@
         }
 
         .badge-good {
-            background: #14532d;
+            background: rgba(34, 197, 94, 0.2);
             color: #22c55e;
+            border: 1px solid #22c55e;
         }
 
         .badge-excellent {
-            background: #1e3a8a;
-            color: #60a5fa;
+            background: rgba(203, 0, 0, 0.2);
+            color: #cb0000;
+            border: 1px solid #cb0000;
         }
 
         .modal-footer {
             padding: 12px 20px;
-            border-top: 1px solid #1f2937;
+            border-top: 1px solid #cb0000;
             display: flex;
             justify-content: flex-end;
-            background: #0b1220;
+            background: #1a1a1a;
             flex: 0 0 auto;
             position: sticky;
             bottom: 0;
@@ -408,13 +448,18 @@
         }
 
         .close-btn {
-            background: #2563eb;
+            background: #cb0000;
             color: #fff;
             padding: 10px 14px;
-            border: none;
+            border: 1px solid #cb0000;
             border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
+        }
+
+        .close-btn:hover {
+            background: #a00000;
+            border-color: #a00000;
         }
 
         .modal-body img { max-width: 100%; height: auto; display: block; }
@@ -529,7 +574,10 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏌️ Putter Arc Analyzer — 3-Putt</h1>
+            <h1>
+                <i data-lucide="golf" style="width:32px; height:32px; margin-right:12px;"></i>
+                Putter Arc Analyzer — 3-Putt
+            </h1>
         </div>
         <div class="content">
             <div class="grid">
@@ -546,10 +594,19 @@
                             role="status"></div>
                         <div class="controls-floating">
                             <div style="display:flex; gap:8px;">
-                                <button id="cameraBtn" class="btn-success">Use Camera</button>
-                                <button id="startBtn" class="btn-primary" disabled>Start</button>
+                                <button id="cameraBtn" class="btn-success">
+                                    <i data-lucide="camera" style="width:16px; height:16px; margin-right:6px;"></i>
+                                    Use Camera
+                                </button>
+                                <button id="startBtn" class="btn-primary" disabled>
+                                    <i data-lucide="play" style="width:16px; height:16px; margin-right:6px;"></i>
+                                    Start
+                                </button>
                             </div>
-                            <button id="stopBtn" class="btn-danger" disabled>Stop</button>
+                            <button id="stopBtn" class="btn-danger" disabled>
+                                <i data-lucide="square" style="width:16px; height:16px; margin-right:6px;"></i>
+                                Stop
+                            </button>
                         </div>
                     </div>
                     <div id="status" class="status waiting">Ready — Start camera to begin</div>
@@ -569,8 +626,14 @@
     <div id="resultsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
         <div class="modal">
             <div class="modal-header">
-                <div id="resultsTitle" class="modal-title">Session Results</div>
-                <button id="closeResults" class="close-btn" aria-label="Close">Close</button>
+                <div id="resultsTitle" class="modal-title">
+                    <i data-lucide="bar-chart-3" style="width:20px; height:20px; margin-right:8px;"></i>
+                    Session Results
+                </div>
+                <button id="closeResults" class="close-btn" aria-label="Close">
+                    <i data-lucide="x" style="width:16px; height:16px; margin-right:6px;"></i>
+                    Close
+                </button>
             </div>
             <div class="modal-body">
                 <div class="modal-grid">
@@ -579,7 +642,10 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button id="closeResults2" class="close-btn">Done</button>
+                <button id="closeResults2" class="close-btn">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-right:6px;"></i>
+                    Done
+                </button>
             </div>
         </div>
     </div>
@@ -930,10 +996,10 @@
                 const avgArc = data.average_arc_type || '—';
                 const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
                 summary.innerHTML = `
-                    <div style="padding:12px; background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px;">
-                        <div style="font-weight:800; color:#3730a3;">Overall Result</div>
-                        <div style="margin-top:6px">Average Arc Type: <span class="pill pill-ok">${this.formatArcType(avgArc)}</span></div>
-                        <div style="margin-top:6px">Average Confidence: ${avgConf}</div>
+                    <div style="padding:12px; background:rgba(203, 0, 0, 0.1); border:1px solid #cb0000; border-radius:8px;">
+                        <div style="font-weight:800; color:#ffffff;">Overall Result</div>
+                        <div style="margin-top:6px; color:#ffffff;">Average Arc Type: <span class="pill pill-ok">${this.formatArcType(avgArc)}</span></div>
+                        <div style="margin-top:6px; color:#ffffff;">Average Confidence: ${avgConf}</div>
                     </div>
                 `;
             }
@@ -1578,6 +1644,9 @@
             }
         }
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Lucide icons
+            lucide.createIcons();
+            
             const ui = new PuttUI();
             // If ws enabled, override transport with WS while preserving UX
             if (USE_WS) {
