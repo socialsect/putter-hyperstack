@@ -1271,16 +1271,40 @@
                 off.width = w;
                 off.height = h;
                 const ctx = off.getContext('2d');
-                // base layer: prefer captured base image if provided, else previewCanvas
+                // base layer: prefer captured base image if provided, else previewCanvas, else video frame
+                let backgroundDrawn = false;
+                
                 if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
                     try {
                         const baseImg = await this.loadImage(baseSrc);
                         ctx.drawImage(baseImg, 0, 0, off.width, off.height);
-                    } catch {
-                        if (this.previewCanvas) ctx.drawImage(this.previewCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch (e) {
+                        console.warn('Failed to load baseSrc image:', e);
                     }
-                } else if (this.previewCanvas) {
+                }
+                
+                // Fallback to previewCanvas if baseSrc failed or not provided
+                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
                     ctx.drawImage(this.previewCanvas, 0, 0);
+                    backgroundDrawn = true;
+                }
+                
+                // Final fallback to video frame if available
+                if (!backgroundDrawn && this.video && this.video.videoWidth > 0) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = off.width;
+                    tempCanvas.height = off.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
+                    ctx.drawImage(tempCanvas, 0, 0);
+                    backgroundDrawn = true;
+                }
+                
+                // If still no background, draw a dark background
+                if (!backgroundDrawn) {
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillRect(0, 0, off.width, off.height);
                 }
                 const sx = off.width / analysisSize.w;
                 const sy = off.height / analysisSize.h;
@@ -1357,13 +1381,28 @@
                     const step = Math.max(1, Math.floor(pts.length / 30)); // Adaptive step size for smoother curve
                     const arcCenters = [];
                     
-                    // Collect centers with adaptive sampling
+                    // Collect centers with adaptive sampling and ensure proper ordering
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const px = point.x * sx;
                         const py = point.y * sy;
-                        arcCenters.push({ x: px, y: py });
+                        arcCenters.push({ x: px, y: py, originalIndex: i });
                     }
+                    
+                    // Sort points by their original index to ensure proper sequence
+                    arcCenters.sort((a, b) => a.originalIndex - b.originalIndex);
+                    
+                    // Remove duplicate points (same x,y coordinates)
+                    const uniqueCenters = [];
+                    for (let i = 0; i < arcCenters.length; i++) {
+                        const current = arcCenters[i];
+                        const prev = uniqueCenters[uniqueCenters.length - 1];
+                        if (!prev || Math.abs(current.x - prev.x) > 2 || Math.abs(current.y - prev.y) > 2) {
+                            uniqueCenters.push({ x: current.x, y: current.y });
+                        }
+                    }
+                    arcCenters.length = 0;
+                    arcCenters.push(...uniqueCenters);
                     
                     // Draw single smooth arc line
                     if (arcCenters.length > 2) {
@@ -1418,16 +1457,40 @@
                 off.width = w;
                 off.height = h;
                 const ctx = off.getContext('2d');
-                // base layer: prefer captured base image if provided, else previewCanvas
+                // base layer: prefer captured base image if provided, else previewCanvas, else video frame
+                let backgroundDrawn = false;
+                
                 if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
                     try {
                         const baseImg = await this.loadImage(baseSrc);
                         ctx.drawImage(baseImg, 0, 0, off.width, off.height);
-                    } catch {
-                        if (this.previewCanvas) ctx.drawImage(this.previewCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch (e) {
+                        console.warn('Failed to load baseSrc image:', e);
                     }
-                } else if (this.previewCanvas) {
+                }
+                
+                // Fallback to previewCanvas if baseSrc failed or not provided
+                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
                     ctx.drawImage(this.previewCanvas, 0, 0);
+                    backgroundDrawn = true;
+                }
+                
+                // Final fallback to video frame if available
+                if (!backgroundDrawn && this.video && this.video.videoWidth > 0) {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = off.width;
+                    tempCanvas.height = off.height;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
+                    ctx.drawImage(tempCanvas, 0, 0);
+                    backgroundDrawn = true;
+                }
+                
+                // If still no background, draw a dark background
+                if (!backgroundDrawn) {
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillRect(0, 0, off.width, off.height);
                 }
                 const sx = off.width / analysisSize.w;
                 const sy = off.height / analysisSize.h;
@@ -1495,8 +1558,25 @@
                     }
                 }
                 
+                // Sort and deduplicate sticker centers for smooth arc
+                stickerCenters.sort((a, b) => {
+                    // Sort by Y coordinate first (top to bottom), then by X coordinate
+                    if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
+                    return a.x - b.x;
+                });
+                
+                // Remove duplicate points
+                const uniqueStickerCenters = [];
+                for (let i = 0; i < stickerCenters.length; i++) {
+                    const current = stickerCenters[i];
+                    const prev = uniqueStickerCenters[uniqueStickerCenters.length - 1];
+                    if (!prev || Math.abs(current.x - prev.x) > 3 || Math.abs(current.y - prev.y) > 3) {
+                        uniqueStickerCenters.push(current);
+                    }
+                }
+                
                 // Draw enhanced red arc line connecting sticker centers (only if drawArc is true)
-                if (drawArc && stickerCenters.length > 1) {
+                if (drawArc && uniqueStickerCenters.length > 1) {
                     ctx.save();
                     
                     // Enhanced styling for single putt
@@ -1508,11 +1588,11 @@
                     
                     // Draw smooth arc line in one direction
                     ctx.beginPath();
-                    ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
+                    ctx.moveTo(uniqueStickerCenters[0].x, uniqueStickerCenters[0].y);
                     
                     // Use simple lineTo for smooth single-direction arc
-                    for (let i = 1; i < stickerCenters.length; i++) {
-                        ctx.lineTo(stickerCenters[i].x, stickerCenters[i].y);
+                    for (let i = 1; i < uniqueStickerCenters.length; i++) {
+                        ctx.lineTo(uniqueStickerCenters[i].x, uniqueStickerCenters[i].y);
                     }
                     
                     ctx.stroke();
@@ -1523,12 +1603,12 @@
                     
                     // Start marker (circle)
                     ctx.beginPath();
-                    ctx.arc(stickerCenters[0].x, stickerCenters[0].y, 6, 0, Math.PI * 2);
+                    ctx.arc(uniqueStickerCenters[0].x, uniqueStickerCenters[0].y, 6, 0, Math.PI * 2);
                     ctx.fill();
                     
                     // End marker (square)
-                    const endX = stickerCenters[stickerCenters.length - 1].x;
-                    const endY = stickerCenters[stickerCenters.length - 1].y;
+                    const endX = uniqueStickerCenters[uniqueStickerCenters.length - 1].x;
+                    const endY = uniqueStickerCenters[uniqueStickerCenters.length - 1].y;
                     ctx.fillRect(endX - 4, endY - 4, 8, 8);
                     
                     // Add "Putt Path" label
@@ -1539,8 +1619,8 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     
-                    const labelX = stickerCenters[Math.floor(stickerCenters.length / 2)].x;
-                    const labelY = stickerCenters[Math.floor(stickerCenters.length / 2)].y - 15;
+                    const labelX = uniqueStickerCenters[Math.floor(uniqueStickerCenters.length / 2)].x;
+                    const labelY = uniqueStickerCenters[Math.floor(uniqueStickerCenters.length / 2)].y - 15;
                     
                     ctx.strokeText('Putt Path', labelX, labelY);
                     ctx.fillText('Putt Path', labelX, labelY);
