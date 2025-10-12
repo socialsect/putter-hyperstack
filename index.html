@@ -1429,7 +1429,7 @@
             }
 
             // Compose an image with cropped putter images from a single list of points
-            async composeDotsImageFromPoints(points, analysisSize, images = null, boxes = null, baseSrc = null) {
+            async composeDotsImageFromPoints(points, analysisSize, images = null, boxes = null, baseSrc = null, drawArc = true) {
                 if (!analysisSize || !Array.isArray(points) || points.length === 0) return null;
                 const off = document.createElement('canvas');
                 const w = this.previewCanvas ? this.previewCanvas.width : (analysisSize.w || 0);
@@ -1515,8 +1515,8 @@
                     }
                 }
                 
-                // Draw enhanced red arc line connecting sticker centers
-                if (stickerCenters.length > 1) {
+                // Draw enhanced red arc line connecting sticker centers (only if drawArc is true)
+                if (drawArc && stickerCenters.length > 1) {
                     ctx.save();
                     
                     // Enhanced styling for single putt
@@ -1690,6 +1690,12 @@
             // ----- Results Modal -----
             async showSessionResults(data) {
                 if (!this.resultsModal) return;
+                
+                // Clear any existing overlays before showing results
+                if (this.previewCanvas) {
+                    this.clearOverlay();
+                }
+                
                 const putts = data.putts || [];
                 const total = putts.length;
                 const avgArc = data.average_arc_type || '—';
@@ -1768,7 +1774,8 @@
                             data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
                             data.path_images,
                             data.path_boxes,
-                            baseSrc
+                            baseSrc,
+                            false // Don't draw arc - it will be drawn by composeDotsImageFromAllPutts
                         );
                     }
                 } catch (e) {
