@@ -8,6 +8,23 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
+        /* Custom Fonts */
+        @font-face {
+            font-family: 'Good Times';
+            src: url('./good times rg.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'Avenir';
+            src: url('./Avenir.ttc') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -15,7 +32,7 @@
         }
 
         body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            font-family: 'Avenir', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
             background: #000000;
             color: #ffffff;
         }
@@ -38,6 +55,7 @@
         }
 
         .header h1 {
+            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
             font-size: 28px;
             font-weight: 800;
             display: flex;
@@ -69,8 +87,9 @@
         }
 
         h3 {
+            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
             font-size: 16px;
-            color: #0f172a;
+            color: #ffffff;
             margin-bottom: 8px;
         }
 
@@ -201,6 +220,7 @@
         }
 
         button {
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
             border: 0;
             padding: 10px 16px;
             border-radius: 8px;
@@ -287,6 +307,7 @@
         }
 
         .pill {
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
             display: inline-block;
             padding: 2px 8px;
             border-radius: 999px;
@@ -348,6 +369,7 @@
         }
 
         .modal-title {
+            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
             font-weight: 800;
             font-size: 18px;
             display: flex;
@@ -388,12 +410,14 @@
         }
 
         .metric .name {
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
             color: #ffffff;
             font-weight: 700;
             font-size: 14px;
         }
 
         .metric .value {
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
             color: #cb0000;
             font-weight: 900;
         }
@@ -416,6 +440,7 @@
         }
 
         .badge {
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
             display: inline-block;
             padding: 2px 8px;
             border-radius: 999px;
