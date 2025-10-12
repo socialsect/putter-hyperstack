@@ -1153,27 +1153,13 @@
                 this.previewCtx.lineJoin = 'round';
                 this.previewCtx.globalAlpha = 0.9;
                 
-                // Draw smooth curve using quadratic curves
+                // Draw smooth arc line in one direction
                 this.previewCtx.beginPath();
                 this.previewCtx.moveTo(points[0].x * sx, points[0].y * sy);
                 
-                for (let i = 1; i < points.length - 1; i++) {
-                    const xc = (points[i].x + points[i + 1].x) * sx / 2;
-                    const yc = (points[i].y + points[i + 1].y) * sy / 2;
-                    this.previewCtx.quadraticCurveTo(
-                        points[i].x * sx, 
-                        points[i].y * sy, 
-                        xc, 
-                        yc
-                    );
-                }
-                
-                // Draw to the last point
-                if (points.length > 1) {
-                    this.previewCtx.lineTo(
-                        points[points.length - 1].x * sx, 
-                        points[points.length - 1].y * sy
-                    );
+                // Use simple lineTo for smooth single-direction arc
+                for (let i = 1; i < points.length; i++) {
+                    this.previewCtx.lineTo(points[i].x * sx, points[i].y * sy);
                 }
                 
                 this.previewCtx.stroke();
@@ -1244,7 +1230,7 @@
                 off.height = this.previewCanvas.height;
                 const ctx = off.getContext('2d');
                 ctx.drawImage(this.previewCanvas, 0, 0);
-                const stepGlobal = 8; // draw every 8th detection for modal image (halved sticker count)
+                const stepGlobal = 6; // draw every 6th detection for modal image (increased sticker count)
                 const maxStickers = 60;
                 for (const putt of (allPutts || [])) {
                     const pts = putt.path_points || [];
@@ -1316,9 +1302,9 @@
                     
                     const imgs = putt.path_images || [];
                     const boxes = putt.path_boxes || [];
-                    const step = 8;
+                    const step = 6; // Increased sticker density (was 8)
                     
-                    // Draw every 8th point for modal image (halved sticker count)
+                    // Draw every 6th point for modal image (increased sticker count)
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const imgSrc = imgs[i];
@@ -1390,19 +1376,13 @@
                         ctx.lineCap = 'round';
                         ctx.lineJoin = 'round';
                         
-                        // Draw smooth curve using quadratic curves
+                        // Draw smooth arc line in one direction
                         ctx.beginPath();
                         ctx.moveTo(arcCenters[0].x, arcCenters[0].y);
                         
-                        for (let i = 1; i < arcCenters.length - 1; i++) {
-                            const xc = (arcCenters[i].x + arcCenters[i + 1].x) / 2;
-                            const yc = (arcCenters[i].y + arcCenters[i + 1].y) / 2;
-                            ctx.quadraticCurveTo(arcCenters[i].x, arcCenters[i].y, xc, yc);
-                        }
-                        
-                        // Draw to the last point
-                        if (arcCenters.length > 1) {
-                            ctx.lineTo(arcCenters[arcCenters.length - 1].x, arcCenters[arcCenters.length - 1].y);
+                        // Use simple lineTo for smooth single-direction arc
+                        for (let i = 1; i < arcCenters.length; i++) {
+                            ctx.lineTo(arcCenters[i].x, arcCenters[i].y);
                         }
                         
                         ctx.stroke();
@@ -1456,8 +1436,8 @@
                 // Collect sticker centers for red arc line
                 const stickerCenters = [];
                 
-                // Draw every 8th point for modal image (halved sticker count)
-                const step = 8;
+                // Draw every 6th point for modal image (increased sticker count)
+                const step = 6; // Increased sticker density (was 8)
                 for (let i = 0; i < points.length; i += step) {
                     const point = points[i];
                     const imgSrc = images && images[i];
@@ -1526,19 +1506,13 @@
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     
-                    // Draw smooth curve using quadratic curves
+                    // Draw smooth arc line in one direction
                     ctx.beginPath();
                     ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
                     
-                    for (let i = 1; i < stickerCenters.length - 1; i++) {
-                        const xc = (stickerCenters[i].x + stickerCenters[i + 1].x) / 2;
-                        const yc = (stickerCenters[i].y + stickerCenters[i + 1].y) / 2;
-                        ctx.quadraticCurveTo(stickerCenters[i].x, stickerCenters[i].y, xc, yc);
-                    }
-                    
-                    // Draw to the last point
-                    if (stickerCenters.length > 1) {
-                        ctx.lineTo(stickerCenters[stickerCenters.length - 1].x, stickerCenters[stickerCenters.length - 1].y);
+                    // Use simple lineTo for smooth single-direction arc
+                    for (let i = 1; i < stickerCenters.length; i++) {
+                        ctx.lineTo(stickerCenters[i].x, stickerCenters[i].y);
                     }
                     
                     ctx.stroke();
