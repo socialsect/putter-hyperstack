@@ -43,7 +43,7 @@
             background: #000000;
             border-radius: 16px;
             overflow: hidden;
-            /* box-shadow: 0 20px 60px rgba(203, 0, 0, 0.3); */
+            box-shadow: 0 20px 60px rgba(203, 0, 0, 0.3);
             border: 2px solid #cb0000;
         }
 
@@ -66,7 +66,7 @@
             background: #ffffff;
             padding: 12px;
             border-radius: 12px;
-            /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .company-logo {
@@ -169,9 +169,25 @@
             font-weight: 700;
         }
 
-        .status-floating {
+        .putt-counter {
             position: absolute;
             top: 12px;
+            right: 12px;
+            background: rgba(203, 0, 0, 0.9);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 16px;
+            font-weight: 800;
+            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .status-floating {
+            position: absolute;
+            top: 60px;
             right: 12px;
             background: rgba(255, 255, 255, 0.9);
             color: #111827;
@@ -204,7 +220,7 @@
             color: #fff;
             padding: 14px 18px;
             border-radius: 999px;
-            /* box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45); */
+            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45);
             font-weight: 900;
             font-size: 20px;
             letter-spacing: 0.4px;
@@ -218,7 +234,7 @@
             height: 10px;
             border-radius: 50%;
             background: #fff;
-            /* box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25); */
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
             animation: pulse 900ms ease-out 2;
         }
 
@@ -370,7 +386,7 @@
             width: min(920px, 92vw);
             border-radius: 16px;
             overflow: hidden;
-            /* box-shadow: 0 30px 80px rgba(203, 0, 0, 0.5); */
+            box-shadow: 0 30px 80px rgba(203, 0, 0, 0.5);
             border: 2px solid #cb0000;
             display: flex;
             flex-direction: column;
@@ -661,6 +677,7 @@
                         <canvas id="previewCanvas"></canvas>
                         <div id="startZone" class="start-zone" style="display: none;"></div>
                         <div class="pill-badge" id="sessionBadge">Idle</div>
+                        <div class="putt-counter" id="puttCounter">0/3</div>
                         <div class="status-floating" id="statusFloating">Ready</div>
                         <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
                             role="status"></div>
@@ -738,6 +755,7 @@
                 this.previewCtx = this.previewCanvas.getContext('2d');
                 this.stage = document.getElementById('stage');
                 this.sessionBadge = document.getElementById('sessionBadge');
+                this.puttCounter = document.getElementById('puttCounter');
                 this.statusFloating = document.getElementById('statusFloating');
                 this.puttCompleteEl = document.getElementById('puttComplete');
                 this.resultsModal = document.getElementById('resultsModal');
@@ -768,6 +786,24 @@
                 el.className = `status ${cls}`;
                 // floating status for fullscreen
                 if (this.statusFloating) this.statusFloating.textContent = text;
+            }
+            
+            updatePuttCounter(completedPutts) {
+                if (this.puttCounter) {
+                    this.puttCounter.textContent = `${completedPutts}/3`;
+                    
+                    // Add visual feedback for progress
+                    if (completedPutts === 3) {
+                        this.puttCounter.style.background = 'rgba(34, 197, 94, 0.9)';
+                        this.puttCounter.style.borderColor = '#22c55e';
+                    } else if (completedPutts > 0) {
+                        this.puttCounter.style.background = 'rgba(203, 0, 0, 0.9)';
+                        this.puttCounter.style.borderColor = '#ffffff';
+                    } else {
+                        this.puttCounter.style.background = 'rgba(107, 114, 128, 0.9)';
+                        this.puttCounter.style.borderColor = '#ffffff';
+                    }
+                }
             }
             
             // Format arc type for display
@@ -894,6 +930,7 @@
                     document.getElementById('startBtn').disabled = false;
                     this.setStatus('Camera ready — Start session to analyze', 'waiting');
                     if (this.sessionBadge) this.sessionBadge.textContent = 'Camera Ready';
+                    this.updatePuttCounter(0); // Initialize counter
                 } catch (e) {
                     console.error(e);
                     this.setStatus('Camera permission denied', 'waiting');
@@ -914,6 +951,7 @@
                     document.getElementById('stopBtn').disabled = false;
                     this.setStatus('Session started — Make your first putt', 'detecting');
                     if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
+                    this.updatePuttCounter(0); // Reset counter for new session
                     
                     // Ensure reference line is visible when starting
                     this.drawReferenceLine();
@@ -1018,6 +1056,7 @@
                                 document.getElementById('stopBtn').disabled = true;
                                 document.getElementById('startBtn').disabled = false;
                                 if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
+                                this.updatePuttCounter(3); // Show completion
                                 // Build accumulated sticker image across all putts if path_images were sent per putt
                                 try {
                                     if (!data.result_image && Array.isArray(data.all_putt_overlays)) {
@@ -1045,6 +1084,10 @@
                 const putts = data.putts || [];
                 const wrap = document.getElementById('putts');
                 wrap.innerHTML = '';
+                
+                // Update putt counter
+                this.updatePuttCounter(putts.length);
+                
                 for (let i = 0; i < 3; i++) {
                     const p = putts[i];
                     const div = document.createElement('div');
@@ -1095,35 +1138,68 @@
                 }, 1200);
             }
 
-            // Draw path overlay onto preview canvas using returned analysis coordinates
+            // Draw enhanced path overlay onto preview canvas using returned analysis coordinates
             drawPathOverlay(points, analysisSize) {
                 if (!analysisSize) return;
                 const sx = this.previewCanvas.width / analysisSize.w;
                 const sy = this.previewCanvas.height / analysisSize.h;
                 this.previewCtx.save();
-                this.previewCtx.lineWidth = 4;
-                this.previewCtx.strokeStyle = '#22c55e';
-                this.previewCtx.fillStyle = '#22c55e';
+                
+                // Enhanced styling for real-time overlay
+                this.previewCtx.lineWidth = 5;
+                this.previewCtx.strokeStyle = '#dc2626'; // Brand red color
+                this.previewCtx.fillStyle = '#dc2626';
+                this.previewCtx.lineCap = 'round';
+                this.previewCtx.lineJoin = 'round';
+                this.previewCtx.globalAlpha = 0.9;
+                
+                // Draw smooth curve using quadratic curves
                 this.previewCtx.beginPath();
-                for (let i = 0; i < points.length; i++) {
-                    const px = points[i].x * sx;
-                    const py = points[i].y * sy;
-                    if (i === 0) this.previewCtx.moveTo(px, py);
-                    else this.previewCtx.lineTo(px, py);
+                this.previewCtx.moveTo(points[0].x * sx, points[0].y * sy);
+                
+                for (let i = 1; i < points.length - 1; i++) {
+                    const xc = (points[i].x + points[i + 1].x) * sx / 2;
+                    const yc = (points[i].y + points[i + 1].y) * sy / 2;
+                    this.previewCtx.quadraticCurveTo(
+                        points[i].x * sx, 
+                        points[i].y * sy, 
+                        xc, 
+                        yc
+                    );
                 }
+                
+                // Draw to the last point
+                if (points.length > 1) {
+                    this.previewCtx.lineTo(
+                        points[points.length - 1].x * sx, 
+                        points[points.length - 1].y * sy
+                    );
+                }
+                
                 this.previewCtx.stroke();
-                // start/end markers
+                
+                // Enhanced start/end markers
                 const s = points[0], e = points[points.length - 1];
-                if (s) {
-                    this.previewCtx.beginPath();
-                    this.previewCtx.arc(s.x * sx, s.y * sy, 6, 0, Math.PI * 2);
-                    this.previewCtx.fill();
-                }
-                if (e) {
-                    this.previewCtx.beginPath();
-                    this.previewCtx.arc(e.x * sx, e.y * sy, 6, 0, Math.PI * 2);
-                    this.previewCtx.fill();
-                }
+                this.previewCtx.globalAlpha = 1.0;
+                
+                // Start marker (circle with glow effect)
+                this.previewCtx.shadowColor = '#dc2626';
+                this.previewCtx.shadowBlur = 8;
+                this.previewCtx.beginPath();
+                this.previewCtx.arc(s.x * sx, s.y * sy, 8, 0, Math.PI * 2);
+                this.previewCtx.fill();
+                
+                // End marker (square with glow effect)
+                this.previewCtx.fillRect(
+                    (e.x * sx) - 6, 
+                    (e.y * sy) - 6, 
+                    12, 
+                    12
+                );
+                
+                // Reset shadow
+                this.previewCtx.shadowBlur = 0;
+                
                 this.previewCtx.restore();
             }
 
@@ -1289,13 +1365,19 @@
                     }
                 }
                 
-                // Draw ONE red arc line only for the longest putt
-                if (longestPutt && longestPutt.path_points && longestPutt.path_points.length > 5) {
-                    const pts = longestPutt.path_points;
-                    const step = 8;
+                // Draw enhanced red arc lines for ALL putts with different styles
+                const puttColors = ['#dc2626', '#ef4444', '#f87171']; // Different shades of red
+                const puttStyles = ['solid', 'dashed', 'dotted'];
+                
+                for (let puttIndex = 0; puttIndex < Math.min(allPutts.length, 3); puttIndex++) {
+                    const putt = allPutts[puttIndex];
+                    if (!putt || !putt.path_points || putt.path_points.length < 3) continue;
+                    
+                    const pts = putt.path_points;
+                    const step = Math.max(1, Math.floor(pts.length / 20)); // Adaptive step size
                     const arcCenters = [];
                     
-                    // Collect centers for the longest putt only
+                    // Collect centers with adaptive sampling
                     for (let i = 0; i < pts.length; i += step) {
                         const point = pts[i];
                         const px = point.x * sx;
@@ -1303,21 +1385,69 @@
                         arcCenters.push({ x: px, y: py });
                     }
                     
-                    // Draw single clean arc line
+                    // Draw enhanced arc line
                     if (arcCenters.length > 2) {
                         ctx.save();
-                        ctx.globalAlpha = 0.9;
-                        ctx.strokeStyle = '#dc2626'; // Red color
-                        ctx.lineWidth = 3;
+                        
+                        // Enhanced styling
+                        ctx.globalAlpha = 0.95;
+                        ctx.strokeStyle = puttColors[puttIndex];
+                        ctx.lineWidth = puttIndex === 0 ? 4 : 3; // Thicker line for first putt
                         ctx.lineCap = 'round';
                         ctx.lineJoin = 'round';
                         
+                        // Add line style variation
+                        if (puttIndex === 1) {
+                            ctx.setLineDash([10, 5]); // Dashed for second putt
+                        } else if (puttIndex === 2) {
+                            ctx.setLineDash([5, 5]); // Dotted for third putt
+                        }
+                        
+                        // Draw smooth curve using quadratic curves
                         ctx.beginPath();
                         ctx.moveTo(arcCenters[0].x, arcCenters[0].y);
-                        for (let i = 1; i < arcCenters.length; i++) {
-                            ctx.lineTo(arcCenters[i].x, arcCenters[i].y);
+                        
+                        for (let i = 1; i < arcCenters.length - 1; i++) {
+                            const xc = (arcCenters[i].x + arcCenters[i + 1].x) / 2;
+                            const yc = (arcCenters[i].y + arcCenters[i + 1].y) / 2;
+                            ctx.quadraticCurveTo(arcCenters[i].x, arcCenters[i].y, xc, yc);
                         }
+                        
+                        // Draw to the last point
+                        if (arcCenters.length > 1) {
+                            ctx.lineTo(arcCenters[arcCenters.length - 1].x, arcCenters[arcCenters.length - 1].y);
+                        }
+                        
                         ctx.stroke();
+                        
+                        // Add start and end markers
+                        ctx.fillStyle = puttColors[puttIndex];
+                        ctx.globalAlpha = 1.0;
+                        
+                        // Start marker (circle)
+                        ctx.beginPath();
+                        ctx.arc(arcCenters[0].x, arcCenters[0].y, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // End marker (square)
+                        const endX = arcCenters[arcCenters.length - 1].x;
+                        const endY = arcCenters[arcCenters.length - 1].y;
+                        ctx.fillRect(endX - 4, endY - 4, 8, 8);
+                        
+                        // Add putt number label
+                        ctx.fillStyle = '#ffffff';
+                        ctx.strokeStyle = puttColors[puttIndex];
+                        ctx.lineWidth = 2;
+                        ctx.font = 'bold 12px Avenir';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        
+                        const labelX = arcCenters[Math.floor(arcCenters.length / 2)].x;
+                        const labelY = arcCenters[Math.floor(arcCenters.length / 2)].y - 15;
+                        
+                        ctx.strokeText(`Putt ${puttIndex + 1}`, labelX, labelY);
+                        ctx.fillText(`Putt ${puttIndex + 1}`, labelX, labelY);
+                        
                         ctx.restore();
                     }
                 }
@@ -1412,21 +1542,62 @@
                     }
                 }
                 
-                // Draw red arc line connecting sticker centers
+                // Draw enhanced red arc line connecting sticker centers
                 if (stickerCenters.length > 1) {
                     ctx.save();
-                    ctx.globalAlpha = 1.0;
-                    ctx.strokeStyle = '#dc2626'; // Red color
-                    ctx.lineWidth = 3;
+                    
+                    // Enhanced styling for single putt
+                    ctx.globalAlpha = 0.95;
+                    ctx.strokeStyle = '#dc2626'; // Brand red color
+                    ctx.lineWidth = 4;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
                     
+                    // Draw smooth curve using quadratic curves
                     ctx.beginPath();
                     ctx.moveTo(stickerCenters[0].x, stickerCenters[0].y);
-                    for (let i = 1; i < stickerCenters.length; i++) {
-                        ctx.lineTo(stickerCenters[i].x, stickerCenters[i].y);
+                    
+                    for (let i = 1; i < stickerCenters.length - 1; i++) {
+                        const xc = (stickerCenters[i].x + stickerCenters[i + 1].x) / 2;
+                        const yc = (stickerCenters[i].y + stickerCenters[i + 1].y) / 2;
+                        ctx.quadraticCurveTo(stickerCenters[i].x, stickerCenters[i].y, xc, yc);
                     }
+                    
+                    // Draw to the last point
+                    if (stickerCenters.length > 1) {
+                        ctx.lineTo(stickerCenters[stickerCenters.length - 1].x, stickerCenters[stickerCenters.length - 1].y);
+                    }
+                    
                     ctx.stroke();
+                    
+                    // Add start and end markers
+                    ctx.fillStyle = '#dc2626';
+                    ctx.globalAlpha = 1.0;
+                    
+                    // Start marker (circle)
+                    ctx.beginPath();
+                    ctx.arc(stickerCenters[0].x, stickerCenters[0].y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // End marker (square)
+                    const endX = stickerCenters[stickerCenters.length - 1].x;
+                    const endY = stickerCenters[stickerCenters.length - 1].y;
+                    ctx.fillRect(endX - 4, endY - 4, 8, 8);
+                    
+                    // Add "Putt Path" label
+                    ctx.fillStyle = '#ffffff';
+                    ctx.strokeStyle = '#dc2626';
+                    ctx.lineWidth = 2;
+                    ctx.font = 'bold 12px Avenir';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const labelX = stickerCenters[Math.floor(stickerCenters.length / 2)].x;
+                    const labelY = stickerCenters[Math.floor(stickerCenters.length / 2)].y - 15;
+                    
+                    ctx.strokeText('Putt Path', labelX, labelY);
+                    ctx.fillText('Putt Path', labelX, labelY);
+                    
                     ctx.restore();
                 }
                 
