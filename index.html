@@ -54,6 +54,27 @@
             text-align: center;
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .logo-container {
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .company-logo {
+            height: 50px;
+            width: auto;
+            max-width: 200px;
+        }
+
         .header h1 {
             font-family: 'Good Times', system-ui, -apple-system, sans-serif;
             font-size: 28px;
@@ -61,6 +82,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 0;
         }
 
         .content {
@@ -80,8 +102,8 @@
         }
 
         .card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
+            background: #1a1a1a;
+            border: 1px solid #cb0000;
             border-radius: 12px;
             padding: 16px;
         }
@@ -556,6 +578,26 @@
             .metric .name { font-size: 13px; }
             .metric .value { font-size: 14px; }
         }
+
+        /* Mobile header adjustments */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .company-logo {
+                height: 40px;
+            }
+            
+            .logo-container {
+                padding: 8px;
+            }
+        }
     </style>
     <script>
         // REST base for fallback
@@ -599,10 +641,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>
-                <i data-lucide="golf" style="width:32px; height:32px; margin-right:12px;"></i>
-                Putter Arc Analyzer — 3-Putt
-            </h1>
+            <div class="header-content">
+                <div class="logo-container">
+                    <img src="./THE RUNNER-LOGOS-01 (2).svg" alt="The Runner Logo" class="company-logo">
+                </div>
+                <h1>
+                    <i data-lucide="golf" style="width:32px; height:32px; margin-right:12px;"></i>
+                    Putter Arc Analyzer — 3-Putt
+                </h1>
+            </div>
         </div>
         <div class="content">
             <div class="grid">
