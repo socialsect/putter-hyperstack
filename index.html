@@ -1821,6 +1821,14 @@
                     const p = putts[i];
                     const confPct = p.confidence != null ? (p.confidence * 100).toFixed(0) : 0;
                     const pts = p.point_count || 0;
+                    // Clean reasoning: keep statement text, remove parenthetical pixel values like (12px) or (12 pixels)
+                    let reasoningClean = '';
+                    if (typeof p.reasoning === 'string' && p.reasoning.length) {
+                        reasoningClean = p.reasoning
+                            // remove (12px) or (12 px) or (12 pixels)
+                            .replace(/\s*[\(\[]\s*\d+(?:\.\d+)?\s*(?:px|pixels)\s*[\)\]]/gi, '')
+                            .trim();
+                    }
                     leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
                         <div style="display:flex; align-items:center; justify-content:space-between;">
                             <div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>
@@ -1829,7 +1837,7 @@
                         <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
                         <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
                         <div class="metric"><span class="name">Points</span><span class="value">${pts}</span></div>
-                        ${p.reasoning ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${p.reasoning}</div>` : ''}
+                        ${reasoningClean ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${reasoningClean}</div>` : ''}
                     </div>`);
                 }
 
