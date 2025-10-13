@@ -785,6 +785,8 @@
                         setTimeout(() => this.drawReferenceLine(), 300);
                         setTimeout(() => this.drawReferenceLine(), 800);
                     }
+                    // Ensure canvas sizes match stage before starting
+                    this.updateCanvasSizes();
                     this.startSession();
                 };
                 document.getElementById('stopBtn').onclick = () => this.stop();
@@ -918,6 +920,22 @@
                 this.rttBadge.style.display = 'inline-block';
             }
 
+            // Keep canvases sized to the visible stage to avoid zoom/crop differences
+            updateCanvasSizes() {
+                if (!this.stage || !this.frameCanvas || !this.previewCanvas) return;
+                const rect = this.stage.getBoundingClientRect();
+                const targetW = Math.max(1, Math.round(rect.width));
+                const targetH = Math.max(1, Math.round(rect.height));
+                if (this.frameCanvas.width !== targetW || this.frameCanvas.height !== targetH) {
+                    this.frameCanvas.width = targetW;
+                    this.frameCanvas.height = targetH;
+                }
+                if (this.previewCanvas.width !== targetW || this.previewCanvas.height !== targetH) {
+                    this.previewCanvas.width = targetW;
+                    this.previewCanvas.height = targetH;
+                }
+            }
+
             async startCamera() {
                 try {
                     this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
@@ -926,16 +944,18 @@
                     await this.video.play();
 
                     await new Promise(r => this.video.onloadedmetadata = r);
-                    this.frameCanvas.width = this.video.videoWidth;
-                    this.frameCanvas.height = this.video.videoHeight;
-                    this.previewCanvas.width = this.video.videoWidth;
-                    this.previewCanvas.height = this.video.videoHeight;
+                    // Align canvases to the stage size (prevents zoomed feed until Use Camera)
+                    this.updateCanvasSizes();
+                    setTimeout(() => this.updateCanvasSizes(), 150);
+                    setTimeout(() => this.updateCanvasSizes(), 500);
                     // ensure preview canvas sits above video and fills stage
                     this.previewCanvas.style.display = 'block';
                     this.previewCanvas.style.pointerEvents = 'none';
                     
-                    // Draw initial reference line
+                    // Draw initial reference line after sizes are correct
                     this.drawReferenceLine();
+                    setTimeout(() => this.drawReferenceLine(), 160);
+                    setTimeout(() => this.drawReferenceLine(), 520);
 
                     document.getElementById('startBtn').disabled = false;
                     this.setStatus('Camera ready — Start session to analyze', 'waiting');
