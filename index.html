@@ -1265,16 +1265,39 @@
             async composeDotsImageFromAllPutts(allPutts, analysisSize, baseSrc = null) {
                 if (!analysisSize) return null;
                 const off = document.createElement('canvas');
-                const w = this.previewCanvas ? this.previewCanvas.width : (analysisSize.w || 0);
-                const h = this.previewCanvas ? this.previewCanvas.height : (analysisSize.h || 0);
+                // Prefer live video dimensions (most reliable on mobile), then preview, then analysisSize
+                const w = (this.video && this.video.videoWidth) || (this.previewCanvas && this.previewCanvas.width) || (analysisSize && analysisSize.w) || 0;
+                const h = (this.video && this.video.videoHeight) || (this.previewCanvas && this.previewCanvas.height) || (analysisSize && analysisSize.h) || 0;
                 if (!w || !h) return null;
                 off.width = w;
                 off.height = h;
                 const ctx = off.getContext('2d');
-                // base layer: prefer captured base image if provided, else previewCanvas, else video frame
+                // base layer: FORCE live video frame first (works best on phones), then previewCanvas, then baseSrc
                 let backgroundDrawn = false;
                 
-                if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
+                // 1) Live video frame (most reliable on mobile)
+                if (this.video && this.video.videoWidth > 0) {
+                    try {
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = off.width;
+                        tempCanvas.height = off.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
+                        ctx.drawImage(tempCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch {}
+                }
+
+                // 2) Preview canvas
+                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
+                    try {
+                        ctx.drawImage(this.previewCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch {}
+                }
+
+                // 3) Provided base image (if any)
+                if (!backgroundDrawn && baseSrc && typeof baseSrc === 'string' && /^(data:|blob:|https?:)/.test(baseSrc)) {
                     try {
                         const baseImg = await this.loadImage(baseSrc);
                         ctx.drawImage(baseImg, 0, 0, off.width, off.height);
@@ -1282,23 +1305,6 @@
                     } catch (e) {
                         console.warn('Failed to load baseSrc image:', e);
                     }
-                }
-                
-                // Fallback to previewCanvas if baseSrc failed or not provided
-                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
-                    ctx.drawImage(this.previewCanvas, 0, 0);
-                    backgroundDrawn = true;
-                }
-                
-                // Final fallback to video frame if available
-                if (!backgroundDrawn && this.video && this.video.videoWidth > 0) {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = off.width;
-                    tempCanvas.height = off.height;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
-                    ctx.drawImage(tempCanvas, 0, 0);
-                    backgroundDrawn = true;
                 }
                 
                 // If still no background, draw a dark background
@@ -1451,16 +1457,39 @@
             async composeDotsImageFromPoints(points, analysisSize, images = null, boxes = null, baseSrc = null, drawArc = true) {
                 if (!analysisSize || !Array.isArray(points) || points.length === 0) return null;
                 const off = document.createElement('canvas');
-                const w = this.previewCanvas ? this.previewCanvas.width : (analysisSize.w || 0);
-                const h = this.previewCanvas ? this.previewCanvas.height : (analysisSize.h || 0);
+                // Prefer live video dimensions (most reliable on mobile), then preview, then analysisSize
+                const w = (this.video && this.video.videoWidth) || (this.previewCanvas && this.previewCanvas.width) || (analysisSize && analysisSize.w) || 0;
+                const h = (this.video && this.video.videoHeight) || (this.previewCanvas && this.previewCanvas.height) || (analysisSize && analysisSize.h) || 0;
                 if (!w || !h) return null;
                 off.width = w;
                 off.height = h;
                 const ctx = off.getContext('2d');
-                // base layer: prefer captured base image if provided, else previewCanvas, else video frame
+                // base layer: FORCE live video frame first (works best on phones), then previewCanvas, then baseSrc
                 let backgroundDrawn = false;
                 
-                if (baseSrc && typeof baseSrc === 'string' && baseSrc.startsWith('data:image')) {
+                // 1) Live video frame (most reliable on mobile)
+                if (this.video && this.video.videoWidth > 0) {
+                    try {
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = off.width;
+                        tempCanvas.height = off.height;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
+                        ctx.drawImage(tempCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch {}
+                }
+
+                // 2) Preview canvas
+                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
+                    try {
+                        ctx.drawImage(this.previewCanvas, 0, 0);
+                        backgroundDrawn = true;
+                    } catch {}
+                }
+
+                // 3) Provided base image (if any)
+                if (!backgroundDrawn && baseSrc && typeof baseSrc === 'string' && /^(data:|blob:|https?:)/.test(baseSrc)) {
                     try {
                         const baseImg = await this.loadImage(baseSrc);
                         ctx.drawImage(baseImg, 0, 0, off.width, off.height);
@@ -1468,23 +1497,6 @@
                     } catch (e) {
                         console.warn('Failed to load baseSrc image:', e);
                     }
-                }
-                
-                // Fallback to previewCanvas if baseSrc failed or not provided
-                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
-                    ctx.drawImage(this.previewCanvas, 0, 0);
-                    backgroundDrawn = true;
-                }
-                
-                // Final fallback to video frame if available
-                if (!backgroundDrawn && this.video && this.video.videoWidth > 0) {
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = off.width;
-                    tempCanvas.height = off.height;
-                    const tempCtx = tempCanvas.getContext('2d');
-                    tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
-                    ctx.drawImage(tempCanvas, 0, 0);
-                    backgroundDrawn = true;
                 }
                 
                 // If still no background, draw a dark background
