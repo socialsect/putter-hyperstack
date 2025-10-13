@@ -780,6 +780,10 @@
                     // Auto-start camera if not already running
                     if (!this.stream) {
                         await this.startCamera();
+                        // Ensure reference line is visible immediately on some devices
+                        this.drawReferenceLine();
+                        setTimeout(() => this.drawReferenceLine(), 300);
+                        setTimeout(() => this.drawReferenceLine(), 800);
                     }
                     this.startSession();
                 };
