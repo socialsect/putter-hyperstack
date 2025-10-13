@@ -1827,6 +1827,11 @@
                         reasoningClean = p.reasoning
                             // remove (12px) or (12 px) or (12 pixels)
                             .replace(/\s*[\(\[]\s*\d+(?:\.\d+)?\s*(?:px|pixels)\s*[\)\]]/gi, '')
+                            // remove phrases like "max deviation 54px" or "deviation: 54 pixels"
+                            .replace(/\b(?:max\s*)?deviation\s*[:=]?\s*\d+(?:\.\d+)?\s*(?:px|pixels)\b/gi, '')
+                            // clean up leftover multiple spaces and separators
+                            .replace(/\s{2,}/g, ' ')
+                            .replace(/\s*[-–—,:;]\s*$/g, '')
                             .trim();
                     }
                     leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
