@@ -687,7 +687,7 @@
                                     <i data-lucide="camera" style="width:16px; height:16px; margin-right:6px;"></i>
                                     Use Camera
                                 </button>
-                                <button id="startBtn" class="btn-primary" disabled>
+                                <button id="startBtn" class="btn-primary">
                                     <i data-lucide="play" style="width:16px; height:16px; margin-right:6px;"></i>
                                     Start
                                 </button>
@@ -776,7 +776,13 @@
                 this.running = false;
 
                 document.getElementById('cameraBtn').onclick = () => this.startCamera();
-                document.getElementById('startBtn').onclick = () => this.startSession();
+                document.getElementById('startBtn').onclick = async () => {
+                    // Auto-start camera if not already running
+                    if (!this.stream) {
+                        await this.startCamera();
+                    }
+                    this.startSession();
+                };
                 document.getElementById('stopBtn').onclick = () => this.stop();
             }
 
