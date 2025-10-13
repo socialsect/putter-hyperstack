@@ -663,7 +663,7 @@
                 </div>
                 <h1>
                     <i data-lucide="golf" style="width:32px; height:32px; margin-right:12px;"></i>
-                    Putter Arc Analyzer — 3-Putt
+                    Putter Arc Analyzer
                 </h1>
             </div>
         </div>
@@ -1750,6 +1750,30 @@
                     this.clearOverlay();
                 }
                 
+                // Normalize and capture a reliable base image for composition
+                let baseSrc = null;
+                try {
+                    if (data && typeof data.result_image === 'string' && data.result_image.length > 0) {
+                        baseSrc = String(data.result_image).replace(/^["']+|["']+$/g, '');
+                    }
+                    if (!baseSrc && data && typeof data.first_frame_image === 'string' && data.first_frame_image.length > 0) {
+                        baseSrc = String(data.first_frame_image).replace(/^["']+|["']+$/g, '');
+                    }
+                    // If still not available, capture current preview or video frame
+                    if (!baseSrc) {
+                        if (this.previewCanvas && this.previewCanvas.width > 0) {
+                            baseSrc = this.previewCanvas.toDataURL('image/png');
+                        } else if (this.video && this.video.videoWidth > 0) {
+                            const tempCanvas = document.createElement('canvas');
+                            tempCanvas.width = this.video.videoWidth;
+                            tempCanvas.height = this.video.videoHeight;
+                            const tempCtx = tempCanvas.getContext('2d');
+                            tempCtx.drawImage(this.video, 0, 0);
+                            baseSrc = tempCanvas.toDataURL('image/png');
+                        }
+                    }
+                } catch {}
+
                 const putts = data.putts || [];
                 const total = putts.length;
                 const avgArc = data.average_arc_type || '—';
@@ -1808,7 +1832,6 @@
                 try {
                     // First try: all putts dots composite (use captured base image if available)
                     if (Array.isArray(data.all_putt_overlays) && data.all_putt_overlays.length > 0) {
-                        const baseSrc = data.result_image || data.first_frame_image || null;
                         dotsImage = await this.composeDotsImageFromAllPutts(
                             data.all_putt_overlays,
                             data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
@@ -1822,7 +1845,6 @@
                 try {
                     // Second try: single putt cropped images
                     if (!dotsImage && Array.isArray(data.path_points) && data.path_points.length > 0) {
-                        const baseSrc = data.result_image || data.first_frame_image || null;
                         dotsImage = await this.composeDotsImageFromPoints(
                             data.path_points, 
                             data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
