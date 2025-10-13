@@ -735,6 +735,10 @@
                     <i data-lucide="check" style="width:16px; height:16px; margin-right:6px;"></i>
                     Done
                 </button>
+                <button id="restartSession" class="btn-primary" style="margin-left:8px;">
+                    <i data-lucide="rotate-ccw" style="width:16px; height:16px; margin-right:6px;"></i>
+                    Restart Session
+                </button>
             </div>
         </div>
     </div>
@@ -768,8 +772,10 @@
                 this.rttBadge = document.getElementById('rttBadge');
                 const closeA = document.getElementById('closeResults');
                 const closeB = document.getElementById('closeResults2');
+                const restartBtn = document.getElementById('restartSession');
                 if (closeA) closeA.onclick = () => this.hideResults();
                 if (closeB) closeB.onclick = () => this.hideResults();
+                if (restartBtn) restartBtn.onclick = () => { location.reload(); };
 
                 this.sessionId = null;
                 this.stream = null;
