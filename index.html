@@ -238,6 +238,73 @@ video,canvas{
   from{opacity:0;transform:translate(-50%, 20px);}
   to{opacity:1;transform:translate(-50%, 0);}
 }
+/* ===== EV SLIDER ===== */
+#evPanel{
+  position:absolute;
+  bottom:calc(250px + var(--safe-bottom));
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(31,31,31,0.92);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:var(--radius-lg);
+  padding:12px 18px 10px;
+  z-index:100;
+  pointer-events:auto;
+  display:none;
+  min-width:250px;
+  backdrop-filter:blur(10px);
+}
+#evPanel.show{display:block;}
+.ev-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.ev-label{
+  font-family:'Good Times',system-ui,sans-serif;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:0.12em;
+  color:rgba(255,255,255,0.6);
+  white-space:nowrap;
+}
+.ev-val{
+  font-family:'Good Times',system-ui,sans-serif;
+  font-size:13px;
+  color:var(--runner-red);
+  font-weight:900;
+  min-width:48px;
+  text-align:right;
+}
+#evSlider{
+  -webkit-appearance:none;
+  appearance:none;
+  flex:1;
+  height:4px;
+  border-radius:99px;
+  background:rgba(255,255,255,0.15);
+  outline:none;
+  cursor:pointer;
+}
+#evSlider::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:18px;height:18px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--runner-red),var(--runner-darkred));
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(231,34,42,0.5);
+}
+#evSlider::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;
+  background:linear-gradient(135deg,var(--runner-red),var(--runner-darkred));
+  border:none;cursor:pointer;
+}
+.ev-hint{
+  margin-top:6px;
+  font-size:10px;
+  color:rgba(255,255,255,0.3);
+  text-align:center;
+}
 </style>
 </head>
 
@@ -263,6 +330,15 @@ video,canvas{
     </div>
   </div>
 
+  <div id="evPanel">
+    <div class="ev-row">
+      <span class="ev-label">⚡ EV</span>
+      <input type="range" id="evSlider" min="-3" max="0" step="0.5" value="-2">
+      <span class="ev-val" id="evVal">-2.0</span>
+    </div>
+    <div class="ev-hint">Drag left = faster shutter = less blur</div>
+  </div>
+
   <button class="btn-primary" id="btnStartCamera">START CAMERA</button>
   <button class="btn-secondary" id="btnCaptureRef" disabled>CAPTURE REFERENCE</button>
   <button class="btn-secondary" id="btnStartTracking" disabled>START TRACKING</button>
@@ -273,11 +349,11 @@ video,canvas{
 /* ===================== CONFIG ===================== */
 const DIFF_THR = 30;
 const MIN_BLOB_PX = 15;
-const MAX_BLOB_PX = 5000;
+const MAX_BLOB_PX = 40000;     // Large ball close to camera can be thousands of pixels
 const MIN_CIRCULARITY = 0.5;
 const BOX_SIZE = 200;
 const MIN_RADIUS_PX = 8;
-const MAX_RADIUS_PX = 40;
+const MAX_RADIUS_PX = 200;     // Allow up to 200px radius — ball fills the box at close range
 const STEP = 3;
 const ROI_TRACKING = 120;
 const ROI_SEARCHING = 250;
@@ -298,6 +374,9 @@ const btnStartTracking = document.getElementById("btnStartTracking");
 const btnReset = document.getElementById("btnReset");
 const statusBadge = document.getElementById("statusBadge");
 const metricsPanel = document.getElementById("metricsPanel");
+const evPanel = document.getElementById("evPanel");
+const evSlider = document.getElementById("evSlider");
+const evVal = document.getElementById("evVal");
 
 /* ===== STATE ===== */
 let stream = null;
@@ -402,7 +481,26 @@ async function autoAdjustExposure() {
   }
 }
 
-/* ===== KALMAN FILTER ===== */
+/* ===== EV SLIDER HANDLER ===== */
+async function applyEV(ev) {
+  const track = video.srcObject?.getVideoTracks()[0];
+  if (!track) return;
+  const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+  if (!capabilities.exposureCompensation) return;
+  const cap = capabilities.exposureCompensation;
+  const clamped = Math.max(cap.min ?? ev, Math.min(cap.max ?? ev, ev));
+  try {
+    await track.applyConstraints({ advanced: [{ exposureCompensation: clamped }] });
+  } catch(e) { console.warn('EV apply failed', e); }
+}
+
+evSlider.addEventListener('input', () => {
+  const ev = parseFloat(evSlider.value);
+  evVal.textContent = ev.toFixed(1);
+  applyEV(ev);
+});
+
+
 class KalmanFilter {
   constructor() {
     this.x = 0; this.y = 0;
@@ -492,10 +590,20 @@ async function startCamera() {
     }
 
     // Auto-adjust exposure based on scene brightness
-    await new Promise(r => setTimeout(r, 500)); // Let camera stabilize
+    await new Promise(r => setTimeout(r, 500));
     await autoAdjustExposure();
 
-    // Show exposure panel removed — fully automatic now
+    // Show EV panel so user can fine-tune if needed
+    evPanel.classList.add('show');
+    // Sync slider to whatever auto-adjust picked
+    const track2 = stream.getVideoTracks()[0];
+    if (track2?.getSettings) {
+      const s = track2.getSettings();
+      if (s.exposureCompensation !== undefined) {
+        evSlider.value = Math.max(-3, Math.min(0, s.exposureCompensation));
+        evVal.textContent = parseFloat(evSlider.value).toFixed(1);
+      }
+    }
 
     updateStatus('Camera Active\nReady to capture');
     btnStartCamera.disabled = true;
@@ -716,10 +824,9 @@ function findBallInBox(refFrame, curFrame, boxRect, searchFullFrame = false) {
     const blobSize = comp.length;
     let score = blobSize * (blobSize / (width * height));
 
-    // ── Template matching: multiply score by NCC similarity ────────────────
+    // ── Template matching: score boost only (no hard reject — ball rotates) ──
     const ncc = nccScore(curFrame, cx, cy);
-    if (ncc < NCC_THRESHOLD) continue; // hard reject imposters
-    score *= (ncc + 0.5); // reward good matches, don't crush borderline ones
+    if (ncc > NCC_THRESHOLD) score *= (ncc + 0.5); // reward matches, don't penalise rotation
     if (lastKnownPosition && searchFullFrame) {
       const dx = cx - lastKnownPosition.x;
       const dy = cy - lastKnownPosition.y;
@@ -848,7 +955,19 @@ function captureBallFrame() {
         if (trajectory) updateMetrics(capturedFrames.length, trajectory.angle, trajectory.direction);
       }
     } else if (missedFrames > MAX_MISSED_FRAMES) {
-      updateStatus('Tracking Active\nBall lost - searching...');
+      // Ball has left frame — shot is done, stop tracking
+      updateStatus('Shot complete\nBall exited frame');
+      showToast('🏌️ Shot complete — press RESET for next shot');
+      tracking = false;
+      if (trackingLoopId !== null) {
+        if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+          video.cancelVideoFrameCallback(trackingLoopId);
+        } else {
+          cancelAnimationFrame(trackingLoopId);
+        }
+        trackingLoopId = null;
+      }
+      btnReset.disabled = false;
     }
   }
 }
