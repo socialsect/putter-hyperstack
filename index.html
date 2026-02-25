@@ -1,2085 +1,1016 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Putter Arc Analyzer ()</title>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <style>
-        /* Custom Fonts */
-        @font-face {
-            font-family: 'Good Times';
-            src: url('./good times rg.ttf') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: 'Avenir';
-            src: url('./Avenir.ttc') format('truetype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Avenir', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-            background: #000000;
-            color: #ffffff;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            background: #000000;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(203, 0, 0, 0.3);
-            border: 2px solid #cb0000;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #cb0000, #8b0000);
-            color: #ffffff;
-            padding: 24px;
-            text-align: center;
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-
-        .logo-container {
-            background: #ffffff;
-            padding: 12px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        }
-
-        .company-logo {
-            height: 50px;
-            width: auto;
-            max-width: 200px;
-        }
-
-        .header h1 {
-            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
-            font-size: 28px;
-            font-weight: 800;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-        }
-
-        .content {
-            padding: 20px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: #1a1a1a;
-            border: 1px solid #cb0000;
-            border-radius: 12px;
-            padding: 16px;
-        }
-
-        h3 {
-            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
-            font-size: 16px;
-            color: #ffffff;
-            margin-bottom: 8px;
-        }
-
-        video,
-        canvas {
-            width: 100%;
-            border-radius: 8px;
-            background: #000;
-            aspect-ratio: 16/9;
-        }
-
-        /* Fullscreen camera stage with overlayed UI */
-        .stage {
-            position: relative;
-            width: 100%;
-            height: 92vh;
-            max-height: 100vh;
-            border-radius: 12px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        .stage video,
-        .stage canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 0;
-        }
-
-        .controls-floating {
-            position: absolute;
-            bottom: 12px;
-            left: 12px;
-            right: 12px;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .pill-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: rgba(15, 23, 42, 0.75);
-            color: #fff;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .putt-counter {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: rgba(203, 0, 0, 0.9);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 999px;
-            font-size: 16px;
-            font-weight: 800;
-            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 10;
-        }
-
-        .status-floating {
-            position: absolute;
-            top: 60px;
-            right: 12px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #111827;
-            padding: 8px 10px;
-            border-radius: 8px;
-            font-weight: 700;
-        }
-
-        /* Putt completion overlay */
-        .putt-complete-overlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            opacity: 0;
-            transform: scale(0.95);
-            transition: opacity 180ms ease, transform 220ms ease;
-            z-index: 5;
-        }
-
-        .putt-complete-overlay.show {
-            opacity: 1;
-            transform: scale(1);
-        }
-
-        .putt-complete-badge {
-            background: rgba(34, 197, 94, 0.94);
-            color: #fff;
-            padding: 14px 18px;
-            border-radius: 999px;
-            box-shadow: 0 12px 30px rgba(34, 197, 94, 0.45);
-            font-weight: 900;
-            font-size: 20px;
-            letter-spacing: 0.4px;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .putt-complete-badge .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25);
-            animation: pulse 900ms ease-out 2;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            100% {
-                transform: scale(1.6);
-                opacity: 0;
-            }
-        }
-
-        .controls {
-            display: flex;
-            gap: 12px;
-            margin-top: 12px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
-            border: 0;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: #cb0000;
-            color: #fff;
-            border: 1px solid #cb0000;
-        }
-
-        .btn-primary:hover {
-            background: #a00000;
-            border-color: #a00000;
-        }
-
-        .btn-success {
-            background: #16a34a;
-            color: #fff;
-            border: 1px solid #16a34a;
-        }
-
-        .btn-success:hover {
-            background: #15803d;
-            border-color: #15803d;
-        }
-
-        .btn-danger {
-            background: #dc2626;
-            color: #fff;
-            border: 1px solid #dc2626;
-        }
-
-        .btn-danger:hover {
-            background: #b91c1c;
-            border-color: #b91c1c;
-        }
-
-        .status {
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .status.waiting {
-            background: rgba(203, 0, 0, 0.1);
-            color: #ffffff;
-            border: 1px solid #cb0000;
-        }
-
-        .status.detecting {
-            background: rgba(203, 0, 0, 0.2);
-            color: #ffffff;
-            border: 1px solid #cb0000;
-        }
-
-        .status.completed {
-            background: rgba(34, 197, 94, 0.2);
-            color: #ffffff;
-            border: 1px solid #22c55e;
-        }
-
-        .putts {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-top: 12px;
-        }
-
-        .putt {
-            background: #1a1a1a;
-            border: 1px solid #cb0000;
-            border-radius: 10px;
-            padding: 12px;
-            color: #ffffff;
-        }
-
-        .pill {
-            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-
-        .pill-ok {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-            border: 1px solid #22c55e;
-        }
-
-        .pill-warn {
-            background: rgba(203, 0, 0, 0.2);
-            color: #cb0000;
-            border: 1px solid #cb0000;
-        }
-
-        /* Results modal */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-        .modal-backdrop.show {
-            display: flex;
-        }
-
-        .modal {
-            background: #000000;
-            color: #ffffff;
-            width: min(920px, 92vw);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 30px 80px rgba(203, 0, 0, 0.5);
-            border: 2px solid #cb0000;
-            display: flex;
-            flex-direction: column;
-            max-height: 90vh;
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            background: #cb0000;
-            border-bottom: 1px solid #cb0000;
-            flex: 0 0 auto;
-            position: sticky;
-            top: 0;
-            z-index: 2;
-        }
-
-        .modal-title {
-            font-family: 'Good Times', system-ui, -apple-system, sans-serif;
-            font-weight: 800;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 16px 20px;
-            overflow: auto;
-            max-height: calc(90vh - 120px);
-            flex: 1 1 auto;
-        }
-
-        .modal-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 900px) {
-            .modal-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .panel {
-            background: #1a1a1a;
-            border: 1px solid #cb0000;
-            border-radius: 12px;
-            padding: 12px;
-        }
-
-        .metric {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin: 8px 0;
-        }
-
-        .metric .name {
-            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
-            color: #ffffff;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .metric .value {
-            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
-            color: #cb0000;
-            font-weight: 900;
-        }
-
-        .bar {
-            height: 10px;
-            background: #1a1a1a;
-            border-radius: 999px;
-            overflow: hidden;
-            margin-top: 6px;
-            border: 1px solid #cb0000;
-        }
-
-        .bar>span {
-            display: block;
-            height: 100%;
-            background: linear-gradient(90deg, #cb0000, #8b0000);
-            width: 0%;
-            transition: width .6s ease;
-        }
-
-        .badge {
-            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 800;
-        }
-
-        .badge-good {
-            background: rgba(34, 197, 94, 0.2);
-            color: #22c55e;
-            border: 1px solid #22c55e;
-        }
-
-        .badge-excellent {
-            background: rgba(203, 0, 0, 0.2);
-            color: #cb0000;
-            border: 1px solid #cb0000;
-        }
-
-        .modal-footer {
-            padding: 12px 20px;
-            border-top: 1px solid #cb0000;
-            display: flex;
-            justify-content: flex-end;
-            background: #1a1a1a;
-            flex: 0 0 auto;
-            position: sticky;
-            bottom: 0;
-            z-index: 2;
-        }
-
-        .close-btn {
-            background: #cb0000;
-            color: #fff;
-            padding: 10px 14px;
-            border: 1px solid #cb0000;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .close-btn:hover {
-            background: #a00000;
-            border-color: #a00000;
-        }
-
-        .modal-body img { max-width: 100%; height: auto; display: block; }
-
-        /* Start zone and armed badge styles */
-        .armed-badge {
-            background: #FF9800;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            animation: pulse 1s infinite;
-            display: inline-block;
-            margin-left: 8px;
-        }
-        
-        .armed-badge.armed {
-            background: #4CAF50;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-        
-        .start-zone {
-            position: absolute;
-            border: 2px dashed #FF9800;
-            background: rgba(255, 152, 0, 0.1);
-            pointer-events: none;
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-        
-        .start-zone.armed {
-            border-color: #4CAF50;
-            background: rgba(76, 175, 80, 0.1);
-            animation: pulse 1s infinite;
-        }
-        
-        .rtt-badge {
-            background: #2196F3;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 10px;
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 4px;
-        }
-
-        /* Mobile full-screen modal */
-        @media (max-width: 600px) {
-            .modal-backdrop { padding: 0; }
-            .modal {
-                width: 100vw;
-                height: 100vh;
-                max-height: 100vh;
-                border-radius: 0;
-            }
-            .modal-header { padding: 12px 14px; }
-            .modal-title { font-size: 16px; }
-            .modal-body { padding: 12px 14px; max-height: calc(100vh - 112px); }
-            .modal-footer { padding: 10px 14px; }
-            .close-btn { width: 100%; }
-            .panel { padding: 10px; }
-            .metric .name { font-size: 13px; }
-            .metric .value { font-size: 14px; }
-        }
-
-        /* Mobile header adjustments */
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-            }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .company-logo {
-                height: 40px;
-            }
-            
-            .logo-container {
-                padding: 8px;
-            }
-        }
-    </style>
-    <script>
-        // REST base for fallback
-        const BASE_URL = "http://localhost:8000";
-        // Optional WebSocket support via query param
-        const qp = new URLSearchParams(location.search);
-        const wsParam = qp.get('ws');
-        const USE_WS = wsParam && wsParam !== '0';
-        const WS_BASE = typeof wsParam === 'string' && wsParam !== '1' ? wsParam : (location.origin.replace(/^http/, 'ws'));
-        const WS_URL = (WS_BASE.replace(/\/$/, '')) + '/ws';
-        
-        // Start zone gating configuration (optional via query params)
-        const START_ZONE_ENABLED = qp.get('sz') !== 'false';
-        const START_ZONE_WIDTH = parseInt(qp.get('szw')) || 80;
-        const START_ZONE_HEIGHT = parseInt(qp.get('szh')) || 140;
-        const START_ZONE_DWELL_MS = parseInt(qp.get('dwell')) || 700;
-        
-        // Start zone state
-        let startZoneState = {
-            enabled: false,
-            armed: false,
-            inZone: false,
-            center: null,
-            bounds: null
-        };
-        
-        // RTT monitoring configuration
-        const RTT_ENABLED = qp.get('rtt') !== 'false' && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const RTT_PING_INTERVAL = parseInt(qp.get('ping')) || 5000; // Increased to 5 seconds for mobile
-        let rttState = {
-            enabled: false,
-            lastRtt: null,
-            pingInterval: null
-        };
-        
-        // Backend configuration constants (must match backend settings)
-        const TARGET_SIZE = 384; // Must match TARGET_SIZE in new.py
-    </script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<title>Golf Ball Frame Tracker</title>
+<style>
+@font-face{
+  font-family:'Good Times';
+  font-weight:normal;font-style:normal;font-display:swap;
+}
+@font-face{
+  font-family:'Avenir';
+  font-weight:normal;font-style:normal;font-display:swap;
+}
+:root{
+  --safe-top:env(safe-area-inset-top);
+  --safe-right:env(safe-area-inset-right);
+  --safe-bottom:env(safe-area-inset-bottom);
+  --safe-left:env(safe-area-inset-left);
+  --runner-black:#0c0c0c;
+  --runner-red:#e7222a;
+  --runner-darkred:#ba1e1e;
+  --runner-steel:#1f1f1f;
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --radius-xl:24px;
+}
+html,body{
+  margin:0;
+  padding:0;
+  background:var(--runner-black);
+  color:#fff;
+  font-family:'Avenir',system-ui,-apple-system,sans-serif;
+  height:100%;
+  overflow:hidden;
+  touch-action:manipulation;
+}
+#wrap{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  background:var(--runner-black);
+}
+video,canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+#overlay{
+  pointer-events:none;
+}
+
+.btn-primary{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:calc(20px + var(--safe-bottom));
+  background:linear-gradient(135deg,var(--runner-red),var(--runner-darkred));
+  border:none;
+  color:#fff;
+  font-family:'Good Times',system-ui,sans-serif;
+  font-size:17px;
+  font-weight:900;
+  letter-spacing:0.5px;
+  text-transform:uppercase;
+  padding:14px 32px;
+  border-radius:999px;
+  cursor:pointer;
+  z-index:100;
+  box-shadow:0 4px 20px rgba(231,34,42,0.35);
+  transition:transform 0.2s ease,box-shadow 0.2s ease;
+  pointer-events:auto;
+}
+.btn-primary:active:not(:disabled){
+  transform:translateX(-50%) scale(0.98);
+}
+.btn-primary:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+.btn-secondary{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(31,31,31,0.9);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#fff;
+  font-family:'Avenir',system-ui,sans-serif;
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0.5px;
+  padding:10px 24px;
+  border-radius:999px;
+  cursor:pointer;
+  z-index:100;
+  box-shadow:0 3px 14px rgba(0,0,0,0.3);
+  transition:transform 0.2s ease,opacity 0.2s ease;
+  pointer-events:auto;
+}
+.btn-secondary:active:not(:disabled){
+  transform:translateX(-50%) scale(0.98);
+}
+.btn-secondary:disabled{
+  opacity:0.4;
+  cursor:not-allowed;
+}
+
+#btnStartCamera{bottom:calc(20px + var(--safe-bottom));}
+#btnCaptureRef{bottom:calc(80px + var(--safe-bottom));}
+#btnStartTracking{bottom:calc(135px + var(--safe-bottom));}
+#btnReset{bottom:calc(190px + var(--safe-bottom));}
+
+
+
+#statusBadge{
+  position:absolute;
+  top:calc(14px + var(--safe-top));
+  left:calc(14px + var(--safe-left));
+  font-family:'Avenir',system-ui,sans-serif;
+  font-size:12px;
+  font-weight:800;
+  padding:10px 14px;
+  border-radius:var(--radius-md);
+  background:rgba(31,31,31,0.9);
+  border:1px solid rgba(255,255,255,0.08);
+  z-index:10;
+  white-space:pre-line;
+  max-width:200px;
+  line-height:1.4;
+}
+
+#metricsPanel{
+  position:absolute;
+  top:calc(14px + var(--safe-top));
+  right:calc(14px + var(--safe-right));
+  z-index:10;
+  background:rgba(31,31,31,0.9);
+  border:1px solid rgba(255,255,255,0.08);
+  padding:12px 14px;
+  border-radius:var(--radius-md);
+  backdrop-filter:blur(8px);
+  display:none;
+  min-width:140px;
+}
+#metricsPanel.show{display:block;}
+.metric-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+  gap:16px;
+}
+.metric-row:last-child{margin-bottom:0;}
+.metric-label{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:0.1em;
+  color:rgba(255,255,255,0.6);
+  font-weight:700;
+}
+.metric-value{
+  font-family:'Good Times',system-ui,sans-serif;
+  font-size:13px;
+  color:#fff;
+  font-weight:900;
+}
+
+.detection-box{
+  position:absolute;
+  border:3px dashed rgba(255,255,255,0.6);
+  border-radius:var(--radius-md);
+  pointer-events:none;
+  opacity:0.7;
+  transition:all 0.3s ease;
+}
+.detection-box.detecting{
+  border-color:var(--runner-red);
+  border-style:solid;
+  animation:pulse-detect 1.5s ease-in-out infinite;
+}
+.detection-box.locked{
+  border-color:#00ff88;
+  border-style:solid;
+  opacity:1;
+  animation:pulse-locked 2s ease-in-out infinite;
+}
+.box-label{
+  position:absolute;
+  top:-28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-family:'Good Times',system-ui,sans-serif;
+  font-size:11px;
+  font-weight:900;
+  color:rgba(255,255,255,0.9);
+  text-transform:uppercase;
+  letter-spacing:0.15em;
+  white-space:nowrap;
+}
+
+@keyframes pulse-detect{
+  0%,100%{opacity:0.7;box-shadow:0 0 0 0 rgba(231,34,42,0.4);}
+  50%{opacity:1;box-shadow:0 0 20px 5px rgba(231,34,42,0.2);}
+}
+@keyframes pulse-locked{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,136,0.4);}
+  50%{opacity:0.85;box-shadow:0 0 20px 5px rgba(0,255,136,0.3);}
+}
+
+.toast{
+  position:fixed;
+  bottom:calc(200px + var(--safe-bottom));
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(31,31,31,0.95);
+  border:1px solid var(--runner-red);
+  border-radius:var(--radius-md);
+  padding:12px 20px;
+  color:#fff;
+  font-family:'Avenir',system-ui,sans-serif;
+  font-size:13px;
+  font-weight:700;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  z-index:1000;
+  animation:slideUp 0.3s ease-out;
+  backdrop-filter:blur(10px);
+  pointer-events:none;
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translate(-50%, 20px);}
+  to{opacity:1;transform:translate(-50%, 0);}
+}
+</style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-content">
-                <div class="logo-container">
-                    <img src="./THE RUNNER-LOGOS-01 (2).svg" alt="The Runner Logo" class="company-logo">
-                </div>
-                <h1>
-                    <i data-lucide="golf" style="width:32px; height:32px; margin-right:12px;"></i>
-                    Putter Arc Analyzer
-                </h1>
-            </div>
-        </div>
-        <div class="content">
-            <div class="grid">
-                <div class="card">
-                    <h3>Live Camera</h3>
-                    <div class="stage" id="stage">
-                        <video id="camera" autoplay muted playsinline style="display:none"></video>
-                        <canvas id="frameCanvas" style="display:none"></canvas>
-                        <canvas id="previewCanvas"></canvas>
-                        <div id="startZone" class="start-zone" style="display: none;"></div>
-                        <div class="pill-badge" id="sessionBadge">Idle</div>
-                        <div class="putt-counter" id="puttCounter">0/3</div>
-                        <div class="status-floating" id="statusFloating">Ready</div>
-                        <div id="puttComplete" class="putt-complete-overlay" aria-live="polite" aria-atomic="true"
-                            role="status"></div>
-                        <div class="controls-floating">
-                            <div style="display:flex; gap:8px;">
-                                <button id="cameraBtn" class="btn-success">
-                                    <i data-lucide="camera" style="width:16px; height:16px; margin-right:6px;"></i>
-                                    Initialize Session
-                                </button>
-                                <button id="startBtn" class="btn-primary">
-                                    <i data-lucide="play" style="width:16px; height:16px; margin-right:6px;"></i>
-                                    Start Camera 
-                                </button>
-                            </div>
-                            <button id="stopBtn" class="btn-danger" disabled>
-                                <i data-lucide="square" style="width:16px; height:16px; margin-right:6px;"></i>
-                                Stop
-                            </button>
-                        </div>
-                    </div>
-                    <div id="status" class="status waiting">Ready — Start camera to begin</div>
-                    <span id="armedBadge" class="armed-badge" style="display: none;">Armed</span>
-                    <span id="rttBadge" class="rtt-badge" style="display: none;">RTT 0ms</span>
-                </div>
-                <div class="card">
-                    <h3>Results</h3>
-                    <div class="putts" id="putts"></div>
-                    <div id="summary" style="margin-top:12px"></div>
-                </div>
-            </div>
-        </div>
+<div id="wrap">
+  <video id="video" playsinline autoplay muted></video>
+  <canvas id="overlay"></canvas>
+
+  <div id="statusBadge">Initializing...</div>
+
+  <div id="metricsPanel">
+    <div class="metric-row">
+      <span class="metric-label">FRAMES</span>
+      <span class="metric-value" id="frameCount">0</span>
     </div>
-
-    <!-- Results Modal -->
-    <div id="resultsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resultsTitle">
-        <div class="modal">
-            <div class="modal-header">
-                <div id="resultsTitle" class="modal-title">
-                    <i data-lucide="bar-chart-3" style="width:20px; height:20px; margin-right:8px;"></i>
-                    Session Results
-                </div>
-                <button id="closeResults" class="close-btn" aria-label="Close">
-                    <i data-lucide="x" style="width:16px; height:16px; margin-right:6px;"></i>
-                    Close
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="modal-grid">
-                    <div class="panel" id="resultsLeft"></div>
-                    <div class="panel" id="resultsRight"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="closeResults2" class="close-btn">
-                    <i data-lucide="check" style="width:16px; height:16px; margin-right:6px;"></i>
-                    Done
-                </button>
-                <button id="restartSession" class="btn-primary" style="margin-left:8px;">
-                    <i data-lucide="rotate-ccw" style="width:16px; height:16px; margin-right:6px;"></i>
-                    Restart Session
-                </button>
-            </div>
-        </div>
+    <div class="metric-row">
+      <span class="metric-label">ANGLE</span>
+      <span class="metric-value" id="angle">--</span>
     </div>
+    <div class="metric-row">
+      <span class="metric-label">DIRECTION</span>
+      <span class="metric-value" id="direction">--</span>
+    </div>
+  </div>
 
-    <script>
-        class PuttUI {
-            constructor() {
-                this.video = document.getElementById('camera');
-                this.frameCanvas = document.getElementById('frameCanvas');
-                this.previewCanvas = document.getElementById('previewCanvas');
-                
-                if (!this.video || !this.frameCanvas || !this.previewCanvas) {
-                    console.error('Required DOM elements not found');
-                    return;
-                }
-                
-                this.frameCtx = this.frameCanvas.getContext('2d');
-                this.previewCtx = this.previewCanvas.getContext('2d');
-                this.stage = document.getElementById('stage');
-                this.sessionBadge = document.getElementById('sessionBadge');
-                this.puttCounter = document.getElementById('puttCounter');
-                this.statusFloating = document.getElementById('statusFloating');
-                this.puttCompleteEl = document.getElementById('puttComplete');
-                this.resultsModal = document.getElementById('resultsModal');
-                this.resultsLeft = document.getElementById('resultsLeft');
-                this.resultsRight = document.getElementById('resultsRight');
-                
-                // Start zone elements
-                this.startZone = document.getElementById('startZone');
-                this.armedBadge = document.getElementById('armedBadge');
-                this.rttBadge = document.getElementById('rttBadge');
-                const closeA = document.getElementById('closeResults');
-                const closeB = document.getElementById('closeResults2');
-                const restartBtn = document.getElementById('restartSession');
-                if (closeA) closeA.onclick = () => this.hideResults();
-                if (closeB) closeB.onclick = () => this.hideResults();
-                if (restartBtn) restartBtn.onclick = () => { location.reload(); };
+  <button class="btn-primary" id="btnStartCamera">START CAMERA</button>
+  <button class="btn-secondary" id="btnCaptureRef" disabled>CAPTURE REFERENCE</button>
+  <button class="btn-secondary" id="btnStartTracking" disabled>START TRACKING</button>
+  <button class="btn-secondary" id="btnReset" disabled>RESET</button>
+</div>
 
-                this.sessionId = null;
-                this.stream = null;
-                this.running = false;
+<script>
+/* ===================== CONFIG ===================== */
+const DIFF_THR = 30;
+const MIN_BLOB_PX = 15;
+const MAX_BLOB_PX = 5000;
+const MIN_CIRCULARITY = 0.5;
+const BOX_SIZE = 200;
+const MIN_RADIUS_PX = 8;
+const MAX_RADIUS_PX = 40;
+const STEP = 3;
+const ROI_TRACKING = 120;
+const ROI_SEARCHING = 250;
+const USE_VERTICAL_STRIP = true;
+const STRIP_WIDTH_PERCENT = 0.35;
+const USE_RAW_DETECTION = true;
 
-                document.getElementById('cameraBtn').onclick = () => this.startCamera();
-                document.getElementById('startBtn').onclick = async () => {
-                    // Auto-start camera if not already running
-                    if (!this.stream) {
-                        await this.startCamera();
-                        // Ensure reference line is visible immediately on some devices
-                        this.drawReferenceLine();
-                        setTimeout(() => this.drawReferenceLine(), 300);
-                        setTimeout(() => this.drawReferenceLine(), 800);
-                    }
-                    this.startSession();
-                };
-                document.getElementById('stopBtn').onclick = () => this.stop();
-            }
+// Exposure is now set automatically based on scene brightness
+/* ================================================== */
 
-            setStatus(text, cls) {
-                const el = document.getElementById('status');
-                el.textContent = text;
-                el.className = `status ${cls}`;
-                // floating status for fullscreen
-                if (this.statusFloating) this.statusFloating.textContent = text;
-            }
-            
-            updatePuttCounter(completedPutts) {
-                if (this.puttCounter) {
-                    this.puttCounter.textContent = `${completedPutts}/3`;
-                    
-                    // Add visual feedback for progress
-                    if (completedPutts === 3) {
-                        this.puttCounter.style.background = 'rgba(34, 197, 94, 0.9)';
-                        this.puttCounter.style.borderColor = '#22c55e';
-                    } else if (completedPutts > 0) {
-                        this.puttCounter.style.background = 'rgba(203, 0, 0, 0.9)';
-                        this.puttCounter.style.borderColor = '#ffffff';
-                    } else {
-                        this.puttCounter.style.background = 'rgba(107, 114, 128, 0.9)';
-                        this.puttCounter.style.borderColor = '#ffffff';
-                    }
-                }
-            }
-            
-            // Format arc type for display
-            formatArcType(arcType) {
-                if (!arcType) return '—';
-                const arcMap = {
-                    'straight': 'Straight',
-                    'slight_arc': 'Slight Arc',
-                    'strong_arc': 'Strong Arc',
-                    'slight_to_straight_arc': 'Slight to Straight Arc',
-                    'straight_to_slight_arc': 'Straight to Slight Arc',
-                    'strong_arc_to_straight_arc': 'Strong Arc to Straight Arc',
-                    'straight_arc_to_strong_arc': 'Straight Arc to Strong Arc'
-                };
-                return arcMap[arcType] || arcType;
-            }
-            
-            updateStartZone(data) {
-                if (!START_ZONE_ENABLED || !data.start_zone_enabled) {
-                    if (this.startZone) this.startZone.style.display = 'none';
-                    if (this.armedBadge) this.armedBadge.style.display = 'none';
-                    return;
-                }
-                
-                // Update start zone state
-                startZoneState.enabled = data.start_zone_enabled;
-                startZoneState.armed = data.start_zone_armed || false;
-                startZoneState.inZone = data.start_zone_in_zone || false;
-                startZoneState.center = data.start_zone_center;
-                startZoneState.bounds = data.start_zone_bounds;
-                
-                // Show start zone overlay (use default bounds if not provided)
-                if (this.startZone) {
-                    const bounds = data.start_zone_bounds || {
-                        width: START_ZONE_WIDTH,
-                        height: START_ZONE_HEIGHT,
-                        dwell_ms: START_ZONE_DWELL_MS
-                    };
-                    const stageRect = this.stage.getBoundingClientRect();
-                    const scaleX = stageRect.width / TARGET_SIZE;
-                    const scaleY = stageRect.height / TARGET_SIZE;
-                    
-                    const zoneWidth = bounds.width * scaleX;
-                    const zoneHeight = bounds.height * scaleY;
-                    const zoneLeft = (TARGET_SIZE * 0.5 - bounds.width * 0.5) * scaleX;
-                    const zoneTop = (TARGET_SIZE * 0.5 - bounds.height * 0.5) * scaleY;
-                    
-                    this.startZone.style.left = `${zoneLeft}px`;
-                    this.startZone.style.top = `${zoneTop}px`;
-                    this.startZone.style.width = `${zoneWidth}px`;
-                    this.startZone.style.height = `${zoneHeight}px`;
-                    this.startZone.style.display = 'block';
-                    
-                    // Update armed state
-                    if (data.start_zone_armed) {
-                        this.startZone.classList.add('armed');
-                    } else {
-                        this.startZone.classList.remove('armed');
-                    }
-                }
-                
-                // Show/hide armed badge
-                if (this.armedBadge) {
-                    if (data.start_zone_armed) {
-                        this.armedBadge.style.display = 'inline-block';
-                        this.armedBadge.classList.add('armed');
-                    } else {
-                        this.armedBadge.style.display = 'none';
-                        this.armedBadge.classList.remove('armed');
-                    }
-                }
-            }
-            
-            startRttMonitoring() {
-                if (!RTT_ENABLED || !this.ws) return;
-                
-                rttState.enabled = true;
-                rttState.pingInterval = setInterval(() => {
-                    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                        const pingTime = Date.now();
-                        this.ws.send(JSON.stringify({ type: 'ping', t: pingTime }));
-                    }
-                }, RTT_PING_INTERVAL);
-            }
-            
-            stopRttMonitoring() {
-                if (rttState.pingInterval) {
-                    clearInterval(rttState.pingInterval);
-                    rttState.pingInterval = null;
-                }
-                rttState.enabled = false;
-                if (this.rttBadge) {
-                    this.rttBadge.style.display = 'none';
-                }
-            }
-            
-            updateRtt(rttMs) {
-                if (!RTT_ENABLED || !this.rttBadge) return;
-                
-                rttState.lastRtt = rttMs;
-                this.rttBadge.textContent = `RTT ${Math.round(rttMs)}ms`;
-                this.rttBadge.style.display = 'inline-block';
-            }
+const video = document.getElementById("video");
+const overlay = document.getElementById("overlay");
+const ctx = overlay.getContext("2d", {willReadFrequently: true});
 
-            async startCamera() {
-                try {
-                    this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-                    this.video.srcObject = this.stream;
-                    this.video.style.display = 'block';
-                    await this.video.play();
+const btnStartCamera = document.getElementById("btnStartCamera");
+const btnCaptureRef = document.getElementById("btnCaptureRef");
+const btnStartTracking = document.getElementById("btnStartTracking");
+const btnReset = document.getElementById("btnReset");
+const statusBadge = document.getElementById("statusBadge");
+const metricsPanel = document.getElementById("metricsPanel");
 
-                    await new Promise(r => this.video.onloadedmetadata = r);
-                    this.frameCanvas.width = this.video.videoWidth;
-                    this.frameCanvas.height = this.video.videoHeight;
-                    this.previewCanvas.width = this.video.videoWidth;
-                    this.previewCanvas.height = this.video.videoHeight;
-                    // ensure preview canvas sits above video and fills stage
-                    this.previewCanvas.style.display = 'block';
-                    this.previewCanvas.style.pointerEvents = 'none';
-                    
-                    // Draw initial reference line
-                    this.drawReferenceLine();
+/* ===== STATE ===== */
+let stream = null;
+let videoTrack = null;
+let referenceFrame = null;
+let tracking = false;
+let capturedFrames = [];
+let detectionBox = null;
+let kalmanFilter = null;
+let lastKnownPosition = null;
+let lockedRadius = null;
+let ballTemplate = null;       // Cropped pixel patch of the ball (Float32Array of normalised luminance)
+let templateSize = 0;          // Side length of the square template (pixels)
+let missedFrames = 0;
+const MAX_MISSED_FRAMES = 3;
+let trackingLoopId = null;
+let lastCaptureTime = 0;
+const MIN_CAPTURE_INTERVAL_MS = 0;
 
-                    document.getElementById('startBtn').disabled = false;
-                    this.setStatus('Camera ready — Start session to analyze', 'waiting');
-                    if (this.sessionBadge) this.sessionBadge.textContent = 'Camera Ready';
-                    this.updatePuttCounter(0); // Initialize counter
-                } catch (e) {
-                    console.error(e);
-                    this.setStatus('Camera permission denied', 'waiting');
-                }
-            }
+/* ===== OFFSCREEN CANVAS ===== */
+const offscreen = document.createElement("canvas");
+const offscreenCtx = offscreen.getContext("2d", {willReadFrequently: true});
 
-            async startSession() {
-                try {
-                    const res = await fetch(`${BASE_URL}/putt/start`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: `user_${Date.now()}` })
-                    });
-                    const data = await res.json();
-                    this.sessionId = data.session_id;
-                    this.running = true;
-                    document.getElementById('startBtn').disabled = true;
-                    document.getElementById('stopBtn').disabled = false;
-                    this.setStatus('Session started — Make your first putt', 'detecting');
-                    if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
-                    this.updatePuttCounter(0); // Reset counter for new session
-                    
-                    // Ensure reference line is visible when starting
-                    this.drawReferenceLine();
-                    
-                    // Show start zone when session starts
-                    if (START_ZONE_ENABLED) {
-                        this.updateStartZone({ 
-                            start_zone_enabled: true, 
-                            start_zone_armed: false, 
-                            start_zone_in_zone: false 
-                        });
-                    }
-                    
-                    this.loop();
-                } catch (e) {
-                    console.error(e);
-                    this.setStatus('Failed to start session', 'waiting');
-                }
-            }
+/* ===== HELPERS ===== */
+function showToast(message) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
 
-            async loop() {
-                while (this.running && this.stream) {
-                    // draw frame
-                    if (this.video.videoWidth > 0 && this.video.videoHeight > 0) {
-                        this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                        const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/jpeg', 0.7));
+function updateStatus(text) {
+  statusBadge.textContent = text;
+}
 
-                        // show local preview
-                        this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
-                        
-                        // Always draw the reference line on top of the live feed
-                        this.drawReferenceLine();
+function updateMetrics(frameCount, angle, direction) {
+  document.getElementById('frameCount').textContent = frameCount;
+  document.getElementById('angle').textContent = angle !== null ? angle.toFixed(1) + '°' : '--';
+  document.getElementById('direction').textContent = direction || '--';
+}
 
-                        // send to backend
-                        try {
-                            const fd = new FormData();
-                            fd.append('file', blob, 'frame.jpg');
-                            fd.append('session_id', this.sessionId);
-                            const res = await fetch(`${BASE_URL}/putt/frame`, { method: 'POST', body: fd });
-                            
-                            if (!res.ok) {
-                                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                            }
-                            const data = await res.json();
-                            try { window.__lastData = data; window.lastData = data; } catch (_) {}
-                            
-                            
-                            if (!data.success && data.error) {
-                                console.error('Backend error:', data.error);
-                                this.setStatus(`Error: ${data.error}`, 'waiting');
-                                return;
-                            }
-                            
-                            this.renderResults(data);
-                            this.updateStartZone(data);
-                            // If a putt just completed, draw the overlay path and pause momentarily
-                            if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                                // Announce completion visually and with light haptics
-                                this.showPuttComplete((data.putts || []).length);
-                                // Prefer sticker overlay using cropped images if provided
-                                if (data.path_images && data.path_images.length) {
-                                    await this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
-                                } else {
-                                this.drawPathOverlay(data.path_points, data.analysis_size);
-                                }
-                                // Capture the last visible frame (with overlays) as a JPEG for the modal
-                                try {
-                                    // Ensure we capture a valid frame
-                                    let capturedImage = null;
-                                    
-                                    // Try preview canvas first
-                                    if (this.previewCanvas && this.previewCanvas.width > 0) {
-                                        capturedImage = this.previewCanvas.toDataURL('image/jpeg', 0.9);
-                                    }
-                                    
-                                    // Fallback to video frame if preview fails
-                                    if (!capturedImage && this.video && this.video.videoWidth > 0) {
-                                        const tempCanvas = document.createElement('canvas');
-                                        tempCanvas.width = this.video.videoWidth;
-                                        tempCanvas.height = this.video.videoHeight;
-                                        const tempCtx = tempCanvas.getContext('2d');
-                                        tempCtx.drawImage(this.video, 0, 0);
-                                        capturedImage = tempCanvas.toDataURL('image/jpeg', 0.9);
-                                    }
-                                    
-                                    if (capturedImage && capturedImage.startsWith('data:image')) {
-                                        data.result_image = capturedImage;
-                                        try { window.__lastData = data; } catch (_) {}
-                                    }
-                                } catch (e) {
-                                    console.warn('Failed to capture putt completion frame:', e);
-                                }
-                                // Small pause to let user see path (mobile-friendly)
-                                await new Promise(r => setTimeout(r, 1200));
-                                this.clearOverlay();
-                                // Redraw enforced reference line after clearing putt path
-                                this.drawReferenceLine();
-                            }
-                            if (data.state === 'completed') {
-                                this.setStatus('3 putts completed — Analysis ready', 'completed');
-                                this.running = false;
-                                document.getElementById('stopBtn').disabled = true;
-                                document.getElementById('startBtn').disabled = false;
-                                if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
-                                this.updatePuttCounter(3); // Show completion
-                                // Build accumulated sticker image across all putts if path_images were sent per putt
-                                try {
-                                    if (!data.result_image && Array.isArray(data.all_putt_overlays)) {
-                                        const composed = await this.composeResultFromAllPutts(data.all_putt_overlays);
-                                        if (composed) data.result_image = composed;
-                                    }
-                                } catch(_) {}
-                                await this.showSessionResults(data);
-                            }
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    } else {
-                        console.warn('Video not ready, skipping frame');
-                    }
+function isWhitePixel(r, g, b) {
+  const brightness = (r + g + b) / 3;
+  if (brightness < 180) return false;
+  const maxC = Math.max(r, g, b);
+  const minC = Math.min(r, g, b);
+  const chroma = maxC - minC;
+  return chroma < 40;
+}
 
-                    // Adjust frame rate based on device type
-                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const frameDelay = isMobile ? 120 : 80; // Slower on mobile: ~8.3 fps vs ~12.5 fps
-                    await new Promise(r => setTimeout(r, frameDelay));
-                }
-            }
+/* ===== BRIGHTNESS CHECK ===== */
+function checkBrightness(frame) {
+  const data = frame.data;
+  const total = frame.width * frame.height;
+  // Sample every 8th pixel for speed
+  const step = 8;
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < data.length; i += 4 * step) {
+    sum += (data[i] + data[i + 1] + data[i + 2]) / 3;
+    count++;
+  }
+  return count > 0 ? sum / count : 0; // Returns 0–255
+}
 
-            renderResults(data) {
-                const putts = data.putts || [];
-                const wrap = document.getElementById('putts');
-                wrap.innerHTML = '';
-                
-                // Update putt counter
-                this.updatePuttCounter(putts.length);
-                
-                for (let i = 0; i < 3; i++) {
-                    const p = putts[i];
-                    const div = document.createElement('div');
-                    div.className = 'putt';
-                    const title = `Putt ${i + 1}`;
-                    if (!p) {
-                        div.innerHTML = `<div style="font-weight:700">${title}</div><div class="pill pill-warn">Pending</div>`;
-                    } else {
-                        const conf = p.confidence ? (p.confidence * 100).toFixed(1) + '%' : '-';
-                        div.innerHTML = `
-                            <div style="font-weight:700">${title}</div>
-                            <div style="margin-top:6px">Arc: <span class="pill pill-ok">${this.formatArcType(p.arc_type)}</span></div>
-                            <div style="margin-top:6px">Confidence: ${conf}</div>
-                            <div style="margin-top:6px; color:#475569; font-size:12px">${p.reasoning || ''}</div>
-                        `;
-                    }
-                    wrap.appendChild(div);
-                }
+/* ===== AUTO EXPOSURE ===== */
+async function autoAdjustExposure() {
+  const frame = grabFrame();
+  const brightness = checkBrightness(frame);
 
-                const summary = document.getElementById('summary');
-                const avgArc = data.average_arc_type || '—';
-                const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
-                summary.innerHTML = `
-                    <div style="padding:12px; background:rgba(203, 0, 0, 0.1); border:1px solid #cb0000; border-radius:8px;">
-                        <div style="font-weight:800; color:#ffffff;">Overall Result</div>
-                        <div style="margin-top:6px; color:#ffffff;">Average Arc Type: <span class="pill pill-ok">${this.formatArcType(avgArc)}</span></div>
-                        <div style="margin-top:6px; color:#ffffff;">Average Confidence: ${avgConf}</div>
-                    </div>
-                `;
-            }
+  let targetEV;
+  if (brightness > 80) targetEV = -3.0;
+  else if (brightness > 50) targetEV = -2.5;
+  else if (brightness > 30) targetEV = -2.0;
+  else if (brightness > 15) targetEV = -1.5;
+  else {
+    targetEV = -1.0;
+    showToast('⚠️ Scene too dark — add bright LED lights');
+  }
 
-            // Show a brief animated overlay when a putt completes
-            showPuttComplete(puttNumber) {
-                if (!this.puttCompleteEl) return;
-                const n = puttNumber || 1;
-                this.puttCompleteEl.innerHTML = `
-                    <div class="putt-complete-badge">
-                        <span class="dot"></span>
-                        Putt ${n} completed
-                    </div>
-                `;
-                this.puttCompleteEl.classList.add('show');
-                // Light haptic feedback on supported devices
-                try { if (navigator.vibrate) navigator.vibrate(40); } catch (_) { }
-                clearTimeout(this._puttHideT);
-                this._puttHideT = setTimeout(() => {
-                    this.puttCompleteEl.classList.remove('show');
-                }, 1200);
-            }
+  const track = video.srcObject?.getVideoTracks()[0];
+  if (!track) return;
 
-            // Draw enhanced path overlay onto preview canvas using returned analysis coordinates
-            drawPathOverlay(points, analysisSize) {
-                if (!analysisSize) return;
-                const sx = this.previewCanvas.width / analysisSize.w;
-                const sy = this.previewCanvas.height / analysisSize.h;
-                this.previewCtx.save();
-                
-                // Enhanced styling for real-time overlay
-                this.previewCtx.lineWidth = 5;
-                this.previewCtx.strokeStyle = '#dc2626'; // Brand red color
-                this.previewCtx.fillStyle = '#dc2626';
-                this.previewCtx.lineCap = 'round';
-                this.previewCtx.lineJoin = 'round';
-                this.previewCtx.globalAlpha = 0.9;
-                
-                // Draw smooth arc line in one direction
-                this.previewCtx.beginPath();
-                this.previewCtx.moveTo(points[0].x * sx, points[0].y * sy);
-                
-                // Use simple lineTo for smooth single-direction arc
-                for (let i = 1; i < points.length; i++) {
-                    this.previewCtx.lineTo(points[i].x * sx, points[i].y * sy);
-                }
-                
-                this.previewCtx.stroke();
-                
-                // Enhanced start/end markers
-                const s = points[0], e = points[points.length - 1];
-                this.previewCtx.globalAlpha = 1.0;
-                
-                // Start marker (circle with glow effect)
-                this.previewCtx.shadowColor = '#dc2626';
-                this.previewCtx.shadowBlur = 8;
-                this.previewCtx.beginPath();
-                this.previewCtx.arc(s.x * sx, s.y * sy, 8, 0, Math.PI * 2);
-                this.previewCtx.fill();
-                
-                // End marker (square with glow effect)
-                this.previewCtx.fillRect(
-                    (e.x * sx) - 6, 
-                    (e.y * sy) - 6, 
-                    12, 
-                    12
-                );
-                
-                // Reset shadow
-                this.previewCtx.shadowBlur = 0;
-                
-                this.previewCtx.restore();
-            }
+  const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+  if (!capabilities.exposureCompensation) {
+    // Silently skip — device doesn't support EV control
+    return;
+  }
 
-            // Draw stickers (cropped object images) along the path
-            async drawStickerOverlay(points, images, analysisSize) {
-                if (!analysisSize || !images || !images.length) return;
-                const sx = this.previewCanvas.width / analysisSize.w;
-                const sy = this.previewCanvas.height / analysisSize.h;
-                const ctx = this.previewCtx;
-                // Draw ALL stickers - no throttling
-                const step = 1;
-                for (let i = 0, idx = 0; i < points.length && idx < images.length; i += step, idx += step) {
-                    const imgSrc = images[idx];
-                    if (!imgSrc) continue;
-                    const px = points[i].x * sx;
-                    const py = points[i].y * sy;
-                    try {
-                        const img = await this.loadImage(imgSrc);
-                        // Draw centered at point, clamp size for readability
-                        const maxDim = Math.min(this.previewCanvas.width, this.previewCanvas.height) * 0.12;
-                        const scale = Math.min(maxDim / Math.max(img.width, img.height), 1.0);
-                        const w = Math.max(16, img.width * scale);
-                        const h = Math.max(16, img.height * scale);
-                        const x = Math.round(px - w / 2);
-                        const y = Math.round(py - h / 2);
-                        if (x + w > 0 && y + h > 0 && x < this.previewCanvas.width && y < this.previewCanvas.height) {
-                            ctx.save();
-                            ctx.globalAlpha = 0.5;
-                            ctx.drawImage(img, x, y, w, h);
-                            ctx.restore();
-                        }
-                    } catch {}
-                }
-            }
+  // Clamp targetEV to what the device supports
+  const cap = capabilities.exposureCompensation;
+  targetEV = Math.max(cap.min ?? targetEV, Math.min(cap.max ?? targetEV, targetEV));
 
-            // Compose and return a dataURL by drawing stickers for ALL putts on the last frame
-            async composeResultFromAllPutts(allPutts) {
-                if (!this.previewCanvas) return null;
-                // clone current preview into an offscreen canvas
-                const off = document.createElement('canvas');
-                off.width = this.previewCanvas.width;
-                off.height = this.previewCanvas.height;
-                const ctx = off.getContext('2d');
-                ctx.drawImage(this.previewCanvas, 0, 0);
-                const stepGlobal = 6; // draw every 6th detection for modal image (increased sticker count)
-                const maxStickers = 60;
-                for (const putt of (allPutts || [])) {
-                    const pts = putt.path_points || [];
-                    const imgs = putt.path_images || [];
-                    const step = stepGlobal;
-                    for (let i = 0, idx = 0; i < pts.length && idx < imgs.length; i += step, idx += step) {
-                        const imgSrc = imgs[idx];
-                        if (!imgSrc) continue;
-                        try {
-                            const img = await this.loadImage(imgSrc);
-                            const px = pts[i].x * (off.width / (this.previewCanvas.width));
-                            const py = pts[i].y * (off.height / (this.previewCanvas.height));
-                            const maxDim = Math.min(off.width, off.height) * 0.12;
-                            const scale = Math.min(maxDim / Math.max(img.width, img.height), 1.0);
-                            const w = Math.max(16, img.width * scale);
-                            const h = Math.max(16, img.height * scale);
-                            const x = Math.round(px - w / 2);
-                            const y = Math.round(py - h / 2);
-                            ctx.save();
-                            ctx.save();
-                            ctx.globalAlpha = 0.5;
-                            ctx.drawImage(img, x, y, w, h);
-                                ctx.restore();
-                            ctx.restore();
-                        } catch {}
-                    }
-                }
-                return off.toDataURL('image/png');
-            }
+  try {
+    await track.applyConstraints({ advanced: [{ exposureCompensation: targetEV }] });
+    showToast(`⚡ Exposure auto-set to ${targetEV.toFixed(1)} EV (brightness: ${Math.round(brightness)})`);
+  } catch (err) {
+    console.warn('Auto exposure failed:', err);
+  }
+}
 
-            // Compose an image with ALL putter positions drawn as cropped putter images across all putts
-            async composeDotsImageFromAllPutts(allPutts, analysisSize, baseSrc = null) {
-                if (!analysisSize) return null;
-                const off = document.createElement('canvas');
-                // Prefer live video dimensions (most reliable on mobile), then preview, then analysisSize
-                const w = (this.video && this.video.videoWidth) || (this.previewCanvas && this.previewCanvas.width) || (analysisSize && analysisSize.w) || 0;
-                const h = (this.video && this.video.videoHeight) || (this.previewCanvas && this.previewCanvas.height) || (analysisSize && analysisSize.h) || 0;
-                if (!w || !h) return null;
-                off.width = w;
-                off.height = h;
-                const ctx = off.getContext('2d');
-                // base layer: FORCE live video frame first (works best on phones), then previewCanvas, then baseSrc
-                let backgroundDrawn = false;
-                
-                // 1) Live video frame (most reliable on mobile)
-                if (this.video && this.video.videoWidth > 0) {
-                    try {
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = off.width;
-                        tempCanvas.height = off.height;
-                        const tempCtx = tempCanvas.getContext('2d');
-                        tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
-                        ctx.drawImage(tempCanvas, 0, 0);
-                        backgroundDrawn = true;
-                    } catch {}
-                }
+/* ===== KALMAN FILTER ===== */
+class KalmanFilter {
+  constructor() {
+    this.x = 0; this.y = 0;
+    this.vx = 0; this.vy = 0;
+    this.initialized = false;
+    this.processNoise = 0.5;
+    this.measurementNoise = 15;
+    this.lastUpdateTime = 0;
+  }
+  init(x, y) {
+    this.x = x; this.y = y;
+    this.vx = 0; this.vy = 0;
+    this.initialized = true;
+    this.lastUpdateTime = performance.now();
+  }
+  predict() {
+    if (!this.initialized) return null;
+    const now = performance.now();
+    const dt = Math.min((now - this.lastUpdateTime) / 1000, 0.1);
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    return { x: this.x, y: this.y };
+  }
+  update(measurement) {
+    if (!this.initialized) {
+      this.init(measurement.x, measurement.y);
+      return { x: this.x, y: this.y };
+    }
+    const now = performance.now();
+    const dt = Math.max((now - this.lastUpdateTime) / 1000, 0.001);
+    this.lastUpdateTime = now;
+    const newVx = (measurement.x - this.x) / dt;
+    const newVy = (measurement.y - this.y) / dt;
+    const alpha = 0.7;
+    this.vx = (1 - alpha) * this.vx + alpha * newVx;
+    this.vy = (1 - alpha) * this.vy + alpha * newVy;
+    const k = this.measurementNoise / (this.measurementNoise + this.processNoise);
+    this.x = this.x + k * (measurement.x - this.x);
+    this.y = this.y + k * (measurement.y - this.y);
+    return { x: this.x, y: this.y };
+  }
+  getVelocity() {
+    return Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+  }
+}
 
-                // 2) Preview canvas
-                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
-                    try {
-                        ctx.drawImage(this.previewCanvas, 0, 0);
-                        backgroundDrawn = true;
-                    } catch {}
-                }
+/* ===== CAMERA ===== */
+async function startCamera() {
+  try {
+    const tmp = await navigator.mediaDevices.getUserMedia({ video: true });
+    tmp.getTracks().forEach(t => t.stop());
 
-                // 3) Provided base image (if any)
-                if (!backgroundDrawn && baseSrc && typeof baseSrc === 'string' && /^(data:|blob:|https?:)/.test(baseSrc)) {
-                    try {
-                        const baseImg = await this.loadImage(baseSrc);
-                        ctx.drawImage(baseImg, 0, 0, off.width, off.height);
-                        backgroundDrawn = true;
-                    } catch (e) {
-                        console.warn('Failed to load baseSrc image:', e);
-                    }
-                }
-                
-                // If still no background, draw a dark background
-                if (!backgroundDrawn) {
-                    ctx.fillStyle = '#1a1a1a';
-                    ctx.fillRect(0, 0, off.width, off.height);
-                }
-                const sx = off.width / analysisSize.w;
-                const sy = off.height / analysisSize.h;
-                
-                // draw cropped putter images instead of dots
-                ctx.save();
-                
-                // Find the longest putt (most significant) and collect all sticker centers
-                let longestPutt = null;
-                let maxPoints = 0;
-                
-                // First, draw all stickers and find the longest putt
-                for (const putt of (allPutts || [])) {
-                    const pts = putt.path_points || [];
-                    if (pts.length > maxPoints) {
-                        maxPoints = pts.length;
-                        longestPutt = putt;
-                    }
-                    
-                    const imgs = putt.path_images || [];
-                    const boxes = putt.path_boxes || [];
-                    const step = 6; // Increased sticker density (was 8)
-                    
-                    // Draw every 6th point for modal image (increased sticker count)
-                    for (let i = 0; i < pts.length; i += step) {
-                        const point = pts[i];
-                        const imgSrc = imgs[i];
-                        const box = boxes[i];
-                        
-                        if (imgSrc && box) {
-                            try {
-                                const img = await this.loadImage(imgSrc);
-                                const px = point.x * sx;
-                                const py = point.y * sy;
-                                
-                                // Scale the cropped putter image
-                                const maxSize = Math.min(off.width, off.height) * 0.08;
-                                const scale = Math.min(maxSize / Math.max(img.width, img.height), 1.0);
-                                const w = img.width * scale;
-                                const h = img.height * scale;
-                                
-                                // Draw with slight transparency and border
-                                ctx.globalAlpha = 0.5;
-                                ctx.drawImage(img, px - w/2, py - h/2, w, h);
-                                
-                            } catch (e) {
-                                // Fallback to dot if image fails to load
-                                const px = point.x * sx;
-                                const py = point.y * sy;
-                                
-                                ctx.fillStyle = 'rgba(34,197,94,0.95)';
-                                const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
-                                ctx.beginPath();
-                                ctx.arc(px, py, r, 0, Math.PI * 2);
-                                ctx.fill();
-                            }
-                        } else {
-                            // Fallback to dot if no image data
-                            const px = point.x * sx;
-                            const py = point.y * sy;
-                            
-                            ctx.fillStyle = 'rgba(34,197,94,0.95)';
-                            const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
-                            ctx.beginPath();
-                            ctx.arc(px, py, r, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    }
-                }
-                
-                // Draw single enhanced red arc line for the longest/most significant putt
-                if (longestPutt && longestPutt.path_points && longestPutt.path_points.length > 2) {
-                    const pts = longestPutt.path_points;
-                    const step = Math.max(1, Math.floor(pts.length / 30)); // Adaptive step size for smoother curve
-                    const arcCenters = [];
-                    
-                    // Collect centers with adaptive sampling and ensure proper ordering
-                    for (let i = 0; i < pts.length; i += step) {
-                        const point = pts[i];
-                        const px = point.x * sx;
-                        const py = point.y * sy;
-                        arcCenters.push({ x: px, y: py, originalIndex: i });
-                    }
-                    
-                    // Sort points by their original index to ensure proper sequence
-                    arcCenters.sort((a, b) => a.originalIndex - b.originalIndex);
-                    
-                    // Remove duplicate points (same x,y coordinates)
-                    const uniqueCenters = [];
-                    for (let i = 0; i < arcCenters.length; i++) {
-                        const current = arcCenters[i];
-                        const prev = uniqueCenters[uniqueCenters.length - 1];
-                        if (!prev || Math.abs(current.x - prev.x) > 2 || Math.abs(current.y - prev.y) > 2) {
-                            uniqueCenters.push({ x: current.x, y: current.y });
-                        }
-                    }
-                    arcCenters.length = 0;
-                    arcCenters.push(...uniqueCenters);
-                    
-                    // Draw single smooth arc line
-                    if (arcCenters.length > 2) {
-                        ctx.save();
-                        
-                        // Enhanced styling for single arc
-                        ctx.globalAlpha = 0.95;
-                        ctx.strokeStyle = '#dc2626'; // Brand red color
-                        ctx.lineWidth = 4;
-                        ctx.lineCap = 'round';
-                        ctx.lineJoin = 'round';
-                        
-                        // Draw smooth arc line in one direction
-                        ctx.beginPath();
-                        ctx.moveTo(arcCenters[0].x, arcCenters[0].y);
-                        
-                        // Use simple lineTo for smooth single-direction arc
-                        for (let i = 1; i < arcCenters.length; i++) {
-                            ctx.lineTo(arcCenters[i].x, arcCenters[i].y);
-                        }
-                        
-                        ctx.stroke();
-                        
-                        // Add start and end markers
-                        ctx.fillStyle = '#dc2626';
-                        ctx.globalAlpha = 1.0;
-                        
-                        // Start marker (circle)
-                        ctx.beginPath();
-                        ctx.arc(arcCenters[0].x, arcCenters[0].y, 6, 0, Math.PI * 2);
-                        ctx.fill();
-                        
-                        // End marker (square)
-                        const endX = arcCenters[arcCenters.length - 1].x;
-                        const endY = arcCenters[arcCenters.length - 1].y;
-                        ctx.fillRect(endX - 4, endY - 4, 8, 8);
-                        
-                        ctx.restore();
-                    }
-                }
-                ctx.restore();
-                return off.toDataURL('image/png');
-            }
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameras = devices.filter(d => d.kind === "videoinput");
 
-            // Compose an image with cropped putter images from a single list of points
-            async composeDotsImageFromPoints(points, analysisSize, images = null, boxes = null, baseSrc = null, drawArc = true) {
-                if (!analysisSize || !Array.isArray(points) || points.length === 0) return null;
-                const off = document.createElement('canvas');
-                // Prefer live video dimensions (most reliable on mobile), then preview, then analysisSize
-                const w = (this.video && this.video.videoWidth) || (this.previewCanvas && this.previewCanvas.width) || (analysisSize && analysisSize.w) || 0;
-                const h = (this.video && this.video.videoHeight) || (this.previewCanvas && this.previewCanvas.height) || (analysisSize && analysisSize.h) || 0;
-                if (!w || !h) return null;
-                off.width = w;
-                off.height = h;
-                const ctx = off.getContext('2d');
-                // base layer: FORCE live video frame first (works best on phones), then previewCanvas, then baseSrc
-                let backgroundDrawn = false;
-                
-                // 1) Live video frame (most reliable on mobile)
-                if (this.video && this.video.videoWidth > 0) {
-                    try {
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = off.width;
-                        tempCanvas.height = off.height;
-                        const tempCtx = tempCanvas.getContext('2d');
-                        tempCtx.drawImage(this.video, 0, 0, off.width, off.height);
-                        ctx.drawImage(tempCanvas, 0, 0);
-                        backgroundDrawn = true;
-                    } catch {}
-                }
+    const usb = cameras.find(d => /usb|uvc|capture|hdmi|elgato|avermedia|cam link/i.test(d.label));
+    const back = cameras.find(d => /back|rear|environment/i.test(d.label));
 
-                // 2) Preview canvas
-                if (!backgroundDrawn && this.previewCanvas && this.previewCanvas.width > 0) {
-                    try {
-                        ctx.drawImage(this.previewCanvas, 0, 0);
-                        backgroundDrawn = true;
-                    } catch {}
-                }
+    let constraints;
+    if (usb) {
+      constraints = { video: { deviceId: { exact: usb.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } };
+    } else if (back) {
+      constraints = { video: { deviceId: { exact: back.deviceId }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } };
+    } else {
+      constraints = { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } };
+    }
 
-                // 3) Provided base image (if any)
-                if (!backgroundDrawn && baseSrc && typeof baseSrc === 'string' && /^(data:|blob:|https?:)/.test(baseSrc)) {
-                    try {
-                        const baseImg = await this.loadImage(baseSrc);
-                        ctx.drawImage(baseImg, 0, 0, off.width, off.height);
-                        backgroundDrawn = true;
-                    } catch (e) {
-                        console.warn('Failed to load baseSrc image:', e);
-                    }
-                }
-                
-                // If still no background, draw a dark background
-                if (!backgroundDrawn) {
-                    ctx.fillStyle = '#1a1a1a';
-                    ctx.fillRect(0, 0, off.width, off.height);
-                }
-                const sx = off.width / analysisSize.w;
-                const sy = off.height / analysisSize.h;
-                
-                ctx.save();
-                // Collect sticker centers for red arc line
-                const stickerCenters = [];
-                
-                // Draw every 6th point for modal image (increased sticker count)
-                const step = 6; // Increased sticker density (was 8)
-                for (let i = 0; i < points.length; i += step) {
-                    const point = points[i];
-                    const imgSrc = images && images[i];
-                    const box = boxes && boxes[i];
-                    
-                    if (imgSrc && box) {
-                        try {
-                            const img = await this.loadImage(imgSrc);
-                            const px = point.x * sx;
-                            const py = point.y * sy;
-                            
-                            // Store center for arc line
-                            stickerCenters.push({ x: px, y: py });
-                            
-                            // Scale the cropped putter image
-                            const maxSize = Math.min(off.width, off.height) * 0.1;
-                            const scale = Math.min(maxSize / Math.max(img.width, img.height), 1.0);
-                            const w = img.width * scale;
-                            const h = img.height * scale;
-                            
-                            // Draw with slight transparency and border
-                            ctx.save();
-                            ctx.globalAlpha = 0.5;
-                            ctx.drawImage(img, px - w/2, py - h/2, w, h);
-                            ctx.restore();
-                            
-                            // Border intentionally removed per requirement: stickers have no boxes
-                        } catch (e) {
-                            // Fallback to dot if image fails to load
-                            const px = point.x * sx;
-                            const py = point.y * sy;
-                            
-                            // Store center for arc line even for fallback dots
-                            stickerCenters.push({ x: px, y: py });
-                            
-                            ctx.fillStyle = 'rgba(34,197,94,0.95)';
-                            const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
-                            ctx.beginPath();
-                            ctx.arc(px, py, r, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    } else {
-                        // Fallback to dot if no image data
-                        const px = point.x * sx;
-                        const py = point.y * sy;
-                        
-                        // Store center for arc line even for fallback dots
-                        stickerCenters.push({ x: px, y: py });
-                        
-                        ctx.fillStyle = 'rgba(34,197,94,0.95)';
-                        const r = Math.max(3, Math.min(off.width, off.height) * 0.004);
-                        ctx.beginPath();
-                        ctx.arc(px, py, r, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-                
-                // Sort and deduplicate sticker centers for smooth arc
-                stickerCenters.sort((a, b) => {
-                    // Sort by Y coordinate first (top to bottom), then by X coordinate
-                    if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
-                    return a.x - b.x;
-                });
-                
-                // Remove duplicate points
-                const uniqueStickerCenters = [];
-                for (let i = 0; i < stickerCenters.length; i++) {
-                    const current = stickerCenters[i];
-                    const prev = uniqueStickerCenters[uniqueStickerCenters.length - 1];
-                    if (!prev || Math.abs(current.x - prev.x) > 3 || Math.abs(current.y - prev.y) > 3) {
-                        uniqueStickerCenters.push(current);
-                    }
-                }
-                
-                // Draw enhanced red arc line connecting sticker centers (only if drawArc is true)
-                if (drawArc && uniqueStickerCenters.length > 1) {
-                    ctx.save();
-                    
-                    // Enhanced styling for single putt
-                    ctx.globalAlpha = 0.95;
-                    ctx.strokeStyle = '#dc2626'; // Brand red color
-                    ctx.lineWidth = 4;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    
-                    // Draw smooth arc line in one direction
-                    ctx.beginPath();
-                    ctx.moveTo(uniqueStickerCenters[0].x, uniqueStickerCenters[0].y);
-                    
-                    // Use simple lineTo for smooth single-direction arc
-                    for (let i = 1; i < uniqueStickerCenters.length; i++) {
-                        ctx.lineTo(uniqueStickerCenters[i].x, uniqueStickerCenters[i].y);
-                    }
-                    
-                    ctx.stroke();
-                    
-                    // Add start and end markers
-                    ctx.fillStyle = '#dc2626';
-                    ctx.globalAlpha = 1.0;
-                    
-                    // Start marker (circle)
-                    ctx.beginPath();
-                    ctx.arc(uniqueStickerCenters[0].x, uniqueStickerCenters[0].y, 6, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // End marker (square)
-                    const endX = uniqueStickerCenters[uniqueStickerCenters.length - 1].x;
-                    const endY = uniqueStickerCenters[uniqueStickerCenters.length - 1].y;
-                    ctx.fillRect(endX - 4, endY - 4, 8, 8);
-                    
-                    // Add "Putt Path" label
-                    ctx.fillStyle = '#ffffff';
-                    ctx.strokeStyle = '#dc2626';
-                    ctx.lineWidth = 2;
-                    ctx.font = 'bold 12px Avenir';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    
-                    const labelX = uniqueStickerCenters[Math.floor(uniqueStickerCenters.length / 2)].x;
-                    const labelY = uniqueStickerCenters[Math.floor(uniqueStickerCenters.length / 2)].y - 15;
-                    
-                    ctx.strokeText('Putt Path', labelX, labelY);
-                    ctx.fillText('Putt Path', labelX, labelY);
-                    
-                    ctx.restore();
-                }
-                
-                ctx.restore();
-                return off.toDataURL('image/jpeg', 0.9);
-            }
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    await video.play();
 
-            loadImage(src) {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => resolve(img);
-                    img.onerror = reject;
-                    img.src = src;
-                });
-            }
+    // Get the video track for exposure control
+    videoTrack = stream.getVideoTracks()[0];
 
-            clearOverlay() {
-                // redraw live frame to clear overlay next iteration; here we just clear
-                this.previewCtx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
-                // Redraw the reference line immediately after clearing
-                this.drawReferenceLine();
-            }
+    const applyDimensions = () => {
+      if (!video.videoWidth || !video.videoHeight) return;
+      overlay.width = video.videoWidth;
+      overlay.height = video.videoHeight;
+      offscreen.width = video.videoWidth;
+      offscreen.height = video.videoHeight;
+    };
 
-            // Draw enforced reference line to help users position their putter
-            drawReferenceLine() {
-                if (!this.previewCanvas) return;
-                
-                const ctx = this.previewCtx;
-                const canvas = this.previewCanvas;
-                
-                // Fixed reference line - always vertical, centered
-                const centerX = canvas.width * 0.5;
-                const startY = 50;
-                const endY = canvas.height - 50;
-                const centerY = canvas.height / 2;
-                
-                ctx.save();
-                
-                // Draw main reference line - RED DOTTED
-                ctx.strokeStyle = 'rgba(220, 38, 38, 0.9)'; // Red color
-                ctx.lineWidth = 3;
-                ctx.setLineDash([15, 10]); // Dotted pattern
-                
-                ctx.beginPath();
-                ctx.moveTo(centerX, startY);
-                ctx.lineTo(centerX, endY);
-                ctx.stroke();
-                
-                // Draw center marker - prominent red circle
-                ctx.setLineDash([]);
-                ctx.strokeStyle = 'rgba(220, 38, 38, 1.0)';
-                ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
-                ctx.lineWidth = 4;
-                
-                // Center circle - larger and more prominent
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.stroke();
-                
-                // Add inner white dot for better visibility
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Add instruction text
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                ctx.font = 'bold 16px system-ui';
-                ctx.textAlign = 'center';
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.lineWidth = 3;
-                ctx.strokeText('POSITION PUTTER HERE', centerX, centerY - 25);
-                ctx.fillText('POSITION PUTTER HERE', centerX, centerY - 25);
-                
-                // Add start and end markers - red
-                ctx.strokeStyle = 'rgba(220, 38, 38, 0.8)';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([]);
-                
-                // Start marker (top)
-                ctx.beginPath();
-                ctx.moveTo(centerX - 20, startY);
-                ctx.lineTo(centerX + 20, startY);
-                ctx.stroke();
-                
-                // End marker (bottom)
-                ctx.beginPath();
-                ctx.moveTo(centerX - 20, endY);
-                ctx.lineTo(centerX + 20, endY);
-                ctx.stroke();
-                
-                // Add directional arrows
-                ctx.fillStyle = 'rgba(220, 38, 38, 0.8)';
-                ctx.font = 'bold 12px system-ui';
-                ctx.textAlign = 'center';
-                ctx.fillText('↑', centerX, startY - 10);
-                ctx.fillText('↓', centerX, endY + 15);
-                
-                ctx.restore();
-            }
+    if (video.videoWidth && video.videoHeight) {
+      applyDimensions();
+    } else {
+      video.addEventListener("loadedmetadata", applyDimensions, { once: true });
+    }
 
-            stop() {
-                this.running = false;
-                if (this.stream) {
-                    this.stream.getTracks().forEach(t => t.stop());
-                    this.stream = null;
-                }
-                document.getElementById('stopBtn').disabled = true;
-                document.getElementById('startBtn').disabled = false;
-                this.setStatus('Stopped', 'waiting');
-                
-                // Redraw reference line when stopping
-                this.drawReferenceLine();
-            }
+    // Auto-adjust exposure based on scene brightness
+    await new Promise(r => setTimeout(r, 500)); // Let camera stabilize
+    await autoAdjustExposure();
 
-            // ----- Results Modal -----
-            async showSessionResults(data) {
-                if (!this.resultsModal) return;
-                
-                // Clear any existing overlays before showing results
-                if (this.previewCanvas) {
-                    this.clearOverlay();
-                }
-                
-                // Normalize and capture a reliable base image for composition
-                let baseSrc = null;
-                try {
-                    if (data && typeof data.result_image === 'string' && data.result_image.length > 0) {
-                        baseSrc = String(data.result_image).replace(/^["']+|["']+$/g, '');
-                    }
-                    if (!baseSrc && data && typeof data.first_frame_image === 'string' && data.first_frame_image.length > 0) {
-                        baseSrc = String(data.first_frame_image).replace(/^["']+|["']+$/g, '');
-                    }
-                    // If still not available, capture current preview or video frame
-                    if (!baseSrc) {
-                        if (this.previewCanvas && this.previewCanvas.width > 0) {
-                            baseSrc = this.previewCanvas.toDataURL('image/png');
-                        } else if (this.video && this.video.videoWidth > 0) {
-                            const tempCanvas = document.createElement('canvas');
-                            tempCanvas.width = this.video.videoWidth;
-                            tempCanvas.height = this.video.videoHeight;
-                            const tempCtx = tempCanvas.getContext('2d');
-                            tempCtx.drawImage(this.video, 0, 0);
-                            baseSrc = tempCanvas.toDataURL('image/png');
-                        }
-                    }
-                } catch {}
+    // Show exposure panel removed — fully automatic now
 
-                const putts = data.putts || [];
-                const total = putts.length;
-                const avgArc = data.average_arc_type || '—';
-                const avgConf = data.average_confidence != null ? (data.average_confidence * 100).toFixed(1) + '%' : '—';
+    updateStatus('Camera Active\nReady to capture');
+    btnStartCamera.disabled = true;
+    btnCaptureRef.disabled = false;
+    showToast('Camera started successfully');
 
-                // Left panel: chart-like summary and per-putt details (angles removed)
-                const leftParts = [];
-                leftParts.push(`<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                    <div style="font-weight:800; font-size:16px; color:#fff;">Overview</div>
-                    <span class="badge badge-excellent">Target 3 • Count ${total}</span>
-                </div>`);
-                leftParts.push(`<div class="metric"><span class="name">Average Arc</span><span class="value">${avgArc}</span></div>`);
-                leftParts.push(`<div class="metric"><span class="name">Average Confidence</span><span class="value">${avgConf}</span></div>`);
+  } catch (error) {
+    console.error('Camera error:', error);
+    showToast('Failed to access camera');
+    updateStatus('Camera Error');
+  }
+}
 
-                // Build per-putt mini-cards (angles removed)
-                for (let i = 0; i < putts.length; i++) {
-                    const p = putts[i];
-                    const confPct = p.confidence != null ? (p.confidence * 100).toFixed(0) : 0;
-                    const pts = p.point_count || 0;
-                    // Clean reasoning: keep statement text, remove parenthetical pixel values like (12px) or (12 pixels)
-                    let reasoningClean = '';
-                    if (typeof p.reasoning === 'string' && p.reasoning.length) {
-                        reasoningClean = p.reasoning
-                            // remove (12px) or (12 px) or (12 pixels)
-                            .replace(/\s*[\(\[]\s*\d+(?:\.\d+)?\s*(?:px|pixels)\s*[\)\]]/gi, '')
-                            // remove phrases like "max deviation 54px" or "deviation: 54 pixels"
-                            .replace(/\b(?:max\s*)?deviation\s*[:=]?\s*\d+(?:\.\d+)?\s*(?:px|pixels)\b/gi, '')
-                            // clean up leftover multiple spaces and separators
-                            .replace(/\s{2,}/g, ' ')
-                            .replace(/\s*[-–—,:;]\s*$/g, '')
-                            .trim();
-                    }
-                    leftParts.push(`<div style="margin-top:12px; border-top:1px solid #1f2937; padding-top:10px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between;">
-                            <div style="font-weight:800; color:#e5e7eb;">Putt ${i + 1}</div>
-                            <span class="badge badge-good">${this.formatArcType(p.arc_type)}</span>
-                        </div>
-                        <div class="metric"><span class="name">Confidence</span><span class="value">${confPct}%</span></div>
-                        <div class="bar"><span style="width:${Math.min(100, Math.max(0, confPct))}%"></span></div>
-                        <div class="metric"><span class="name">Points</span><span class="value">${pts}</span></div>
-                        ${reasoningClean ? `<div style=\"margin-top:6px; color:#94a3b8; font-size:12px\">${reasoningClean}</div>` : ''}
-                    </div>`);
-                }
+/* ===== DETECTION BOX ===== */
+function createDetectionBox() {
+  const existing = document.querySelector('.detection-box');
+  if (existing) existing.remove();
+  const box = document.createElement('div');
+  box.className = 'detection-box';
+  box.style.width = BOX_SIZE + 'px';
+  box.style.height = BOX_SIZE + 'px';
+  box.style.left = '50%';
+  box.style.top = '50%';
+  box.style.transform = 'translate(-50%, -50%)';
+  const label = document.createElement('div');
+  label.className = 'box-label';
+  label.textContent = 'BALL AREA';
+  box.appendChild(label);
+  document.getElementById('wrap').appendChild(box);
+  detectionBox = box;
+}
 
-                this.resultsLeft.innerHTML = leftParts.join('');
+function getDetectionBoxRect() {
+  const videoRect = video.getBoundingClientRect();
+  const boxRect = detectionBox.getBoundingClientRect();
+  const scaleX = video.videoWidth / videoRect.width;
+  const scaleY = video.videoHeight / videoRect.height;
+  const x = (boxRect.left - videoRect.left) * scaleX;
+  const y = (boxRect.top - videoRect.top) * scaleY;
+  const width = boxRect.width * scaleX;
+  const height = boxRect.height * scaleY;
+  return {x, y, width, height};
+}
 
-                // Right panel: remove angle gauges; keep only the result image and summary chips
-                const imgSrc = null; // First frame removed from UI
-                
-                this.resultsRight.innerHTML = `
-                    <div style=\"font-weight:800; color:#e5e7eb; margin-bottom:8px;\">Result</div>
-                    
-                    ${data.result_image ? `<div style="margin-top:12px"><div class="metric"><span class="name">Result Image</span><span class="value"></span></div><img class="result-frame" alt="Result frame" style="width:100%; border-radius:8px; border:1px solid #1f2937;"/></div>` : ''}
-                    <div style=\"margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;\">
-                        <span class=\"badge badge-excellent\">Average: ${this.formatArcType(avgArc)}</span>
-                        <span class=\"badge badge-good\">Putts ${total}/3</span>
-                    </div>
-                `;
-                
-                if (data.result_image) {
-                    const rEl = this.resultsRight.querySelector('img.result-frame');
-                    if (rEl) {
-                        rEl.src = String(data.result_image).replace(/^[\"']+|[\"']+$/g, '');
-                    }
-                }
-                // ALWAYS generate dots image - prioritize all putts, fallback to single putt, then raw frame
-                let dotsImage = null;
-                
-                try {
-                    // First try: all putts dots composite (use captured base image if available)
-                    if (Array.isArray(data.all_putt_overlays) && data.all_putt_overlays.length > 0) {
-                        dotsImage = await this.composeDotsImageFromAllPutts(
-                            data.all_putt_overlays,
-                            data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
-                            baseSrc
-                        );
-                    }
-                } catch (e) {
-                    console.warn('Failed to generate all putts composite:', e);
-                }
-                
-                try {
-                    // Second try: single putt cropped images
-                    if (!dotsImage && Array.isArray(data.path_points) && data.path_points.length > 0) {
-                        dotsImage = await this.composeDotsImageFromPoints(
-                            data.path_points, 
-                            data.analysis_size || (this.previewCanvas ? { w: this.previewCanvas.width, h: this.previewCanvas.height } : null),
-                            data.path_images,
-                            data.path_boxes,
-                            baseSrc,
-                            false // Don't draw arc - it will be drawn by composeDotsImageFromAllPutts
-                        );
-                    }
-                } catch (e) {
-                    console.warn('Failed to generate single putt composite:', e);
-                }
-                
-                // Fallback strategies - ensure we ALWAYS have an image
-                try {
-                    if (!dotsImage && data.result_image) {
-                        dotsImage = String(data.result_image);
-                    }
-                } catch (e) {
-                    console.warn('Failed to use captured result image:', e);
-                }
-                
-                try {
-                    if (!dotsImage && this.previewCanvas) {
-                        dotsImage = this.previewCanvas.toDataURL('image/png');
-                    }
-                } catch (e) {
-                    console.warn('Failed to capture preview canvas:', e);
-                }
-                
-                // Last resort: capture video frame directly if canvas fails
-                try {
-                    if (!dotsImage && this.video && this.video.videoWidth > 0) {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = this.video.videoWidth;
-                        canvas.height = this.video.videoHeight;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(this.video, 0, 0);
-                        dotsImage = canvas.toDataURL('image/jpeg', 0.8);
-                    }
-                } catch (e) {
-                    console.warn('Failed to capture video frame:', e);
-                }
-                
-                // Ultimate fallback: create a placeholder image
-                if (!dotsImage || !dotsImage.startsWith('data:image')) {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 400;
-                        canvas.height = 300;
-                        const ctx = canvas.getContext('2d');
-                        
-                        // Draw placeholder
-                        ctx.fillStyle = '#1f2937';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.fillStyle = '#9ca3af';
-                        ctx.font = '24px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText('Session Complete', canvas.width/2, canvas.height/2 - 20);
-                        ctx.font = '16px Arial';
-                        ctx.fillText('Image unavailable', canvas.width/2, canvas.height/2 + 20);
-                        
-                        dotsImage = canvas.toDataURL('image/png');
-                    } catch (e) {
-                        console.error('Failed to create placeholder image:', e);
-                    }
-                }
-                
-                // Display the image (guaranteed to have one now)
-                if (dotsImage && dotsImage.startsWith('data:image')) {
-                    const rEl = this.resultsRight.querySelector('img.result-frame');
-                    if (rEl) {
-                        rEl.src = dotsImage;
-                        rEl.style.display = 'block';
-                    } else {
-                        const wrap = this.resultsRight;
-                        const cap = document.createElement('div');
-                        cap.className = 'metric';
-                        cap.innerHTML = '<span class="name">Result Image</span><span class="value"></span>';
-                        wrap.appendChild(cap);
-                        const img = new Image();
-                        img.alt = 'Result frame';
-                        img.style.cssText = 'width:100%; border-radius:8px; border:1px solid #1f2937; display:block;';
-                        img.src = dotsImage;
-                        wrap.appendChild(img);
-                    }
-                    // Store for potential reuse
-                    data.result_image = dotsImage;
-                } else {
-                    console.error('All image generation methods failed');
-                }
-                this.resultsModal.classList.add('show');
-            }
-            hideResults() {
-                if (this.resultsModal) this.resultsModal.classList.remove('show');
-            }
-        }
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Lucide icons
-            lucide.createIcons();
-            
-            const ui = new PuttUI();
-            // If ws enabled, override transport with WS while preserving UX
-            if (USE_WS) {
-                try {
-                    // Monkey-patch startSession and loop to use WS
-                    ui.openSocket = function() {
-                        this.ws = new WebSocket(WS_URL);
-                        this.ws.binaryType = 'arraybuffer';
-                        this.ws.onopen = () => {
-                            this.ws.send(JSON.stringify({ type: 'start', user_id: `user_${Date.now()}` }));
-                            this.startRttMonitoring();
-                        };
-                        this.ws.onmessage = (ev) => {
-                            try {
-                                const data = JSON.parse(ev.data);
-                                if (data.type === 'started' && data.session_id) {
-                                    this.sessionId = data.session_id;
-                                    return;
-                                }
-                                if (data.type === 'pong' && data.t) {
-                                    const rtt = Date.now() - data.t;
-                                    this.updateRtt(rtt);
-                                    return;
-                                }
-                                if (!data.success && data.error) {
-                                    this.setStatus(`Error: ${data.error}`, 'waiting');
-                                    return;
-                                }
-                                this.renderResults(data);
-                                this.updateStartZone(data);
-                                if (data.putt_completed && data.path_points && data.path_points.length > 1) {
-                                    this.showPuttComplete((data.putts || []).length);
-                                    if (data.path_images && data.path_images.length) {
-                                        this.drawStickerOverlay(data.path_points, data.path_images, data.analysis_size);
-                                    } else {
-                                        this.drawPathOverlay(data.path_points, data.analysis_size);
-                                    }
-                                    setTimeout(() => { this.clearOverlay(); this.drawReferenceLine(); }, 1200);
-                                }
-                                if (data.state === 'completed') {
-                                    this.setStatus('3 putts completed — Analysis ready', 'completed');
-                                    this.running = false;
-                                    document.getElementById('stopBtn').disabled = true;
-                                    document.getElementById('startBtn').disabled = false;
-                                    if (this.sessionBadge) this.sessionBadge.textContent = 'Completed';
-                                    this.showSessionResults(data);
-                                }
-                            } catch {}
-                        };
-                        this.ws.onclose = () => { 
-                            this.ws = null; 
-                            this.running = false; 
-                            this.stopRttMonitoring();
-                        };
-                        this.ws.onerror = () => {};
-                    };
-                    ui.startSession = async function() {
-                        if (!this.ws) this.openSocket();
-                        this.running = true;
-                        document.getElementById('startBtn').disabled = true;
-                        document.getElementById('stopBtn').disabled = false;
-                        this.setStatus('Session started — Make your first putt', 'detecting');
-                        if (this.sessionBadge) this.sessionBadge.textContent = 'Session Active';
-                        
-                        // Show start zone when session starts
-                        if (START_ZONE_ENABLED) {
-                            this.updateStartZone({ 
-                                start_zone_enabled: true, 
-                                start_zone_armed: false, 
-                                start_zone_in_zone: false 
-                            });
-                        }
-                        
-                        this.loop = async () => {
-                            while (this.running && this.stream) {
-                                if (!this.ws || this.ws.readyState !== 1) { await new Promise(r => setTimeout(r, 40)); continue; }
-                                this.frameCtx.drawImage(this.video, 0, 0, this.frameCanvas.width, this.frameCanvas.height);
-                                const blob = await new Promise(r => this.frameCanvas.toBlob(r, 'image/webp', 0.55));
-                                if (!blob) { await new Promise(r => setTimeout(r, 12)); continue; }
-                                this.previewCtx.drawImage(this.video, 0, 0, this.previewCanvas.width, this.previewCanvas.height);
-                                this.drawReferenceLine();
-                                try {
-                                    const buf = await blob.arrayBuffer();
-                                    this.ws.send(buf);
-                                } catch {}
-                                await new Promise(r => setTimeout(r, 70));
-                            }
-                        };
-                        this.loop();
-                    };
-                } catch {}
-            }
-        });
-    </script>
+/* ===== FRAME CAPTURE ===== */
+function grabFrame() {
+  offscreenCtx.drawImage(video, 0, 0);
+  return offscreenCtx.getImageData(0, 0, offscreen.width, offscreen.height);
+}
+
+/* ===== SIZE LOCK ===== */
+// Hard-reject any blob whose radius differs from the locked radius by more than RADIUS_TOLERANCE.
+// Returns true if the candidate passes (or if no radius is locked yet).
+const RADIUS_TOLERANCE = 0.35; // 35% — tight enough to kill imposters, loose enough for perspective change
+function passesSizeLock(radius) {
+  if (lockedRadius === null) return true;
+  const ratio = Math.abs(radius - lockedRadius) / lockedRadius;
+  return ratio <= RADIUS_TOLERANCE;
+}
+
+/* ===== TEMPLATE MATCHING ===== */
+// Build a normalised luminance patch centred on (cx, cy) with side = 2*r rounded to odd number.
+function buildTemplate(frame, cx, cy, radius) {
+  const side = Math.max(7, Math.round(radius * 2) | 1); // odd, min 7px
+  const half = Math.floor(side / 2);
+  const w = frame.width;
+  const patch = new Float32Array(side * side);
+  let sum = 0;
+  for (let dy = -half; dy <= half; dy++) {
+    for (let dx = -half; dx <= half; dx++) {
+      const px = Math.round(cx) + dx;
+      const py = Math.round(cy) + dy;
+      if (px < 0 || px >= w || py < 0 || py >= frame.height) continue;
+      const i = (py * w + px) * 4;
+      const lum = (frame.data[i] + frame.data[i+1] + frame.data[i+2]) / 3;
+      patch[(dy + half) * side + (dx + half)] = lum;
+      sum += lum;
+    }
+  }
+  // Zero-mean normalise
+  const mean = sum / patch.length;
+  let norm = 0;
+  for (let i = 0; i < patch.length; i++) { patch[i] -= mean; norm += patch[i] * patch[i]; }
+  norm = Math.sqrt(norm) || 1;
+  for (let i = 0; i < patch.length; i++) patch[i] /= norm;
+  return { patch, side };
+}
+
+// Normalised cross-correlation of the saved template against a region in frame centred on (cx, cy).
+// Returns score in [-1, 1]. Values above NCC_THRESHOLD are considered a match.
+const NCC_THRESHOLD = 0.55; // tuned for white golf ball; lower = more permissive
+function nccScore(frame, cx, cy) {
+  if (!ballTemplate) return 1; // no template yet → pass everything
+  const { patch, side } = ballTemplate;
+  const half = Math.floor(side / 2);
+  const w = frame.width;
+  const candidate = new Float32Array(side * side);
+  let sum = 0;
+  for (let dy = -half; dy <= half; dy++) {
+    for (let dx = -half; dx <= half; dx++) {
+      const px = Math.round(cx) + dx;
+      const py = Math.round(cy) + dy;
+      if (px < 0 || px >= w || py < 0 || py >= frame.height) continue;
+      const i = (py * w + px) * 4;
+      const lum = (frame.data[i] + frame.data[i+1] + frame.data[i+2]) / 3;
+      candidate[(dy + half) * side + (dx + half)] = lum;
+      sum += lum;
+    }
+  }
+  const mean = sum / candidate.length;
+  let norm = 0;
+  for (let i = 0; i < candidate.length; i++) { candidate[i] -= mean; norm += candidate[i] * candidate[i]; }
+  norm = Math.sqrt(norm) || 1;
+  let dot = 0;
+  for (let i = 0; i < patch.length; i++) dot += patch[i] * (candidate[i] / norm);
+  return dot; // in [-1, 1]
+}
+
+/* ===== BALL DETECTION ===== */
+function findBallInBox(refFrame, curFrame, boxRect, searchFullFrame = false) {
+  const w = curFrame.width;
+  const h = curFrame.height;
+  let xMin, xMax, yMin, yMax;
+
+  if (searchFullFrame) {
+    if (USE_VERTICAL_STRIP) {
+      const stripHeight = h * STRIP_WIDTH_PERCENT;
+      const centerY = h / 2;
+      xMin = 0; xMax = w;
+      yMin = Math.max(0, Math.floor(centerY - stripHeight / 2));
+      yMax = Math.min(h, Math.ceil(centerY + stripHeight / 2));
+    } else if (lastKnownPosition) {
+      const ROI_SIZE = missedFrames === 0 ? ROI_TRACKING : ROI_SEARCHING;
+      xMin = Math.max(0, Math.floor(lastKnownPosition.x - ROI_SIZE));
+      xMax = Math.min(w, Math.ceil(lastKnownPosition.x + ROI_SIZE));
+      yMin = Math.max(0, Math.floor(lastKnownPosition.y - ROI_SIZE));
+      yMax = Math.min(h, Math.ceil(lastKnownPosition.y + ROI_SIZE));
+    } else {
+      xMin = 0; xMax = w; yMin = 0; yMax = h;
+    }
+  } else {
+    xMin = Math.max(0, Math.floor(boxRect.x));
+    xMax = Math.min(w, Math.ceil(boxRect.x + boxRect.width));
+    yMin = Math.max(0, Math.floor(boxRect.y));
+    yMax = Math.min(h, Math.ceil(boxRect.y + boxRect.height));
+  }
+
+  const gridW = Math.max(1, Math.floor((xMax - xMin) / STEP));
+  const gridH = Math.max(1, Math.floor((yMax - yMin) / STEP));
+  const grid = new Uint8Array(gridW * gridH);
+
+  let idx = 0;
+  for (let gy = 0; gy < gridH; gy++) {
+    const absY = yMin + gy * STEP;
+    for (let gx = 0; gx < gridW; gx++, idx++) {
+      const absX = xMin + gx * STEP;
+      const frameIdx = (absY * w + absX) * 4;
+      const curR = curFrame.data[frameIdx];
+      const curG = curFrame.data[frameIdx + 1];
+      const curB = curFrame.data[frameIdx + 2];
+      const dr = Math.abs(curR - refFrame.data[frameIdx]);
+      const dg = Math.abs(curG - refFrame.data[frameIdx + 1]);
+      const db = Math.abs(curB - refFrame.data[frameIdx + 2]);
+      const diff = (dr + dg + db) / 3;
+      if (diff > DIFF_THR && isWhitePixel(curR, curG, curB)) {
+        grid[idx] = 1;
+      }
+    }
+  }
+
+  const visited = new Uint8Array(gridW * gridH);
+  let bestBlob = null;
+  let bestScore = 0;
+
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] === 0 || visited[i]) continue;
+    const q = [i];
+    visited[i] = 1;
+    const comp = [];
+    for (let qi = 0; qi < q.length; qi++) {
+      const cur = q[qi];
+      comp.push(cur);
+      const gx = cur % gridW;
+      const gy = Math.floor(cur / gridW);
+      const n1 = cur - 1, n2 = cur + 1, n3 = cur - gridW, n4 = cur + gridW;
+      if (gx > 0 && grid[n1] && !visited[n1]) { visited[n1] = 1; q.push(n1); }
+      if (gx < gridW - 1 && grid[n2] && !visited[n2]) { visited[n2] = 1; q.push(n2); }
+      if (gy > 0 && grid[n3] && !visited[n3]) { visited[n3] = 1; q.push(n3); }
+      if (gy < gridH - 1 && grid[n4] && !visited[n4]) { visited[n4] = 1; q.push(n4); }
+    }
+    if (comp.length < MIN_BLOB_PX || comp.length > MAX_BLOB_PX) continue;
+    let sx = 0, sy = 0;
+    let minGx = Infinity, maxGx = -Infinity;
+    let minGy = Infinity, maxGy = -Infinity;
+    for (const ci of comp) {
+      const gx = ci % gridW;
+      const gy = Math.floor(ci / gridW);
+      sx += gx; sy += gy;
+      if (gx < minGx) minGx = gx;
+      if (gx > maxGx) maxGx = gx;
+      if (gy < minGy) minGy = gy;
+      if (gy > maxGy) maxGy = gy;
+    }
+    const cxGrid = sx / comp.length;
+    const cyGrid = sy / comp.length;
+    const cx = xMin + cxGrid * STEP;
+    const cy = yMin + cyGrid * STEP;
+    const width = (maxGx - minGx + 1) * STEP;
+    const height = (maxGy - minGy + 1) * STEP;
+    const radius = Math.max(width, height) / 2;
+    if (radius < MIN_RADIUS_PX || radius > MAX_RADIUS_PX) continue;
+    const aspectRatio = width >= height ? width / height : height / width;
+    if (aspectRatio > 1.6) continue;
+
+    // ── IDEA 2: Size lock hard reject ──────────────────────────────────────
+    if (!passesSizeLock(radius)) continue;
+
+    const blobSize = comp.length;
+    let score = blobSize * (blobSize / (width * height));
+
+    // ── Template matching: multiply score by NCC similarity ────────────────
+    const ncc = nccScore(curFrame, cx, cy);
+    if (ncc < NCC_THRESHOLD) continue; // hard reject imposters
+    score *= (ncc + 0.5); // reward good matches, don't crush borderline ones
+    if (lastKnownPosition && searchFullFrame) {
+      const dx = cx - lastKnownPosition.x;
+      const dy = cy - lastKnownPosition.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      score = score / (1 + dist * 0.02);
+      if (lockedRadius) {
+        const sizeDiff = Math.abs(radius - lockedRadius);
+        score = score / (1 + sizeDiff * 0.1);
+      }
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestBlob = { cx, cy, radius, size: blobSize };
+    }
+  }
+
+  if (!bestBlob) return null;
+  return { x: bestBlob.cx, y: bestBlob.cy, radius: bestBlob.radius };
+}
+
+/* ===== CAPTURE REFERENCE ===== */
+function captureReference() {
+  referenceFrame = grabFrame();
+  updateStatus('Reference Captured\nPlace ball in box');
+  btnStartTracking.disabled = false;
+  btnReset.disabled = false;
+  detectionBox.classList.add('detecting');
+  showToast('Reference captured - ready to track');
+}
+
+/* ===== START TRACKING ===== */
+function startTracking() {
+  if (!referenceFrame) return;
+  tracking = true;
+  capturedFrames = [];
+  kalmanFilter = new KalmanFilter();
+  lastKnownPosition = null;
+  lockedRadius = null;
+  ballTemplate = null;
+  templateSize = 0;
+  missedFrames = 0;
+  lastCaptureTime = 0;
+  updateStatus('Tracking Active\nHorizontal strip mode');
+  detectionBox.classList.remove('detecting');
+  detectionBox.classList.add('locked');
+  metricsPanel.classList.add('show');
+  btnStartTracking.disabled = true;
+  btnCaptureRef.disabled = true;
+  showToast('Tracking started');
+  startTrackingLoop();
+}
+
+/* ===== FRAME-SYNCED TRACKING LOOP ===== */
+function startTrackingLoop() {
+  if (!tracking) return;
+  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    trackingLoopId = video.requestVideoFrameCallback(frameCallback);
+  } else {
+    trackingLoopId = requestAnimationFrame(frameCallbackRAF);
+  }
+}
+
+function frameCallback(now, metadata) {
+  if (!tracking) return;
+  captureBallFrame();
+  if (tracking) {
+    trackingLoopId = video.requestVideoFrameCallback(frameCallback);
+  }
+}
+
+function frameCallbackRAF() {
+  if (!tracking) return;
+  const now = performance.now();
+  if (now - lastCaptureTime >= MIN_CAPTURE_INTERVAL_MS) {
+    captureBallFrame();
+  }
+  if (tracking) {
+    trackingLoopId = requestAnimationFrame(frameCallbackRAF);
+  }
+}
+
+/* ===== CAPTURE BALL FRAME ===== */
+function captureBallFrame() {
+  if (!tracking) return;
+  const now = performance.now();
+  lastCaptureTime = now;
+  const currentFrame = grabFrame();
+  const boxRect = getDetectionBoxRect();
+  const ballPos = findBallInBox(referenceFrame, currentFrame, boxRect, true);
+
+  if (ballPos) {
+    missedFrames = 0;
+    let finalPos;
+    if (USE_RAW_DETECTION) {
+      finalPos = { x: ballPos.x, y: ballPos.y };
+      if (kalmanFilter) kalmanFilter.update(ballPos);
+    } else {
+      finalPos = kalmanFilter.update(ballPos);
+    }
+    lastKnownPosition = finalPos;
+    if (lockedRadius === null) {
+      lockedRadius = ballPos.radius;
+      // ── Capture template on very first detection ───────────────────────
+      ballTemplate = buildTemplate(currentFrame, ballPos.x, ballPos.y, ballPos.radius);
+      templateSize = ballTemplate.side;
+    } else {
+      // Gradually update radius (50/50 blend) but keep original template —
+      // the ball appearance doesn't change, only perspective slightly.
+      lockedRadius = 0.5 * lockedRadius + 0.5 * ballPos.radius;
+    }
+    capturedFrames.push({ x: finalPos.x, y: finalPos.y, radius: lockedRadius, timestamp: performance.now() });
+    updateMetrics(capturedFrames.length, null, null);
+    if (capturedFrames.length >= 3) {
+      const trajectory = calculateTrajectory();
+      if (trajectory) updateMetrics(capturedFrames.length, trajectory.angle, trajectory.direction);
+    }
+  } else {
+    missedFrames++;
+    if (missedFrames <= MAX_MISSED_FRAMES && kalmanFilter && kalmanFilter.initialized) {
+      const predicted = kalmanFilter.predict();
+      lastKnownPosition = predicted;
+      capturedFrames.push({ x: predicted.x, y: predicted.y, radius: lockedRadius || 20, timestamp: performance.now(), predicted: true });
+      updateMetrics(capturedFrames.length, null, null);
+      if (capturedFrames.length >= 3) {
+        const trajectory = calculateTrajectory();
+        if (trajectory) updateMetrics(capturedFrames.length, trajectory.angle, trajectory.direction);
+      }
+    } else if (missedFrames > MAX_MISSED_FRAMES) {
+      updateStatus('Tracking Active\nBall lost - searching...');
+    }
+  }
+}
+
+/* ===== CALCULATE TRAJECTORY ===== */
+function calculateTrajectory() {
+  if (capturedFrames.length < 3) return null;
+  const first = capturedFrames[0];
+  const last = capturedFrames[capturedFrames.length - 1];
+  const dx = last.x - first.x;
+  const dy = -(last.y - first.y);
+  const angleRad = Math.atan2(dy, dx);
+  let angleDeg = angleRad * (180 / Math.PI);
+  if (angleDeg > 90) angleDeg = 90;
+  if (angleDeg < -90) angleDeg = -90;
+  const direction = angleDeg > 2 ? "Right" : angleDeg < -2 ? "Left" : "Straight";
+  return { angle: angleDeg, direction: direction };
+}
+
+/* ===== DRAWING ===== */
+function drawFrame() {
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (detectionBox && !tracking) {
+    const boxRect = getDetectionBoxRect();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(boxRect.x, boxRect.y, boxRect.width, boxRect.height);
+    const cx = boxRect.x + boxRect.width / 2;
+    const cy = boxRect.y + boxRect.height / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, boxRect.y); ctx.lineTo(cx, boxRect.y + boxRect.height);
+    ctx.moveTo(boxRect.x, cy); ctx.lineTo(boxRect.x + boxRect.width, cy);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  if (tracking || capturedFrames.length > 0) {
+    const centerY = overlay.height / 2;
+    ctx.strokeStyle = 'rgba(231, 34, 42, 0.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, centerY); ctx.lineTo(overlay.width, centerY);
+    ctx.stroke();
+
+    const centerX = overlay.width / 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, 0); ctx.lineTo(centerX, overlay.height);
+    ctx.stroke();
+
+    if (USE_VERTICAL_STRIP) {
+      const stripHeight = overlay.height * STRIP_WIDTH_PERCENT;
+      const topBound = centerY - stripHeight / 2;
+      const bottomBound = centerY + stripHeight / 2;
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 5]);
+      ctx.beginPath();
+      ctx.moveTo(0, topBound); ctx.lineTo(overlay.width, topBound);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, bottomBound); ctx.lineTo(overlay.width, bottomBound);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.9)';
+      ctx.font = 'bold 14px "Avenir", sans-serif';
+      ctx.fillText('TRACKING ZONE', 20, topBound - 10);
+    }
+  }
+
+  if (capturedFrames.length > 0) {
+    if (capturedFrames.length > 1) {
+      ctx.strokeStyle = 'rgba(0, 255, 100, 0.9)';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(capturedFrames[0].x, capturedFrames[0].y);
+      for (let i = 1; i < capturedFrames.length; i++) {
+        ctx.lineTo(capturedFrames[i].x, capturedFrames[i].y);
+      }
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < capturedFrames.length; i++) {
+      const frame = capturedFrames[i];
+      const opacity = 0.3 + (i / capturedFrames.length) * 0.2;
+      if (frame.predicted) {
+        ctx.fillStyle = `rgba(255, 255, 100, ${opacity})`;
+        ctx.strokeStyle = `rgba(200, 200, 100, ${opacity * 0.8})`;
+      } else {
+        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.strokeStyle = `rgba(200, 200, 200, ${opacity * 0.8})`;
+      }
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(frame.x, frame.y, frame.radius, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(0, 255, 100, 0.9)';
+      ctx.beginPath();
+      ctx.arc(frame.x, frame.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const latest = capturedFrames[capturedFrames.length - 1];
+    ctx.strokeStyle = 'rgba(255, 255, 0, 1.0)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(latest.x, latest.y, latest.radius + 5, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+/* ===== MAIN RENDER LOOP ===== */
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+  if (!video.videoWidth || !overlay.width) return;
+  drawFrame();
+}
+
+/* ===== RESET ===== */
+function reset() {
+  tracking = false;
+  if (trackingLoopId !== null) {
+    if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+      video.cancelVideoFrameCallback(trackingLoopId);
+    } else {
+      cancelAnimationFrame(trackingLoopId);
+    }
+    trackingLoopId = null;
+  }
+  referenceFrame = null;
+  capturedFrames = [];
+  kalmanFilter = null;
+  lastKnownPosition = null;
+  lockedRadius = null;
+  ballTemplate = null;
+  templateSize = 0;
+  missedFrames = 0;
+  lastCaptureTime = 0;
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  detectionBox.classList.remove('detecting', 'locked');
+  metricsPanel.classList.remove('show');
+  btnCaptureRef.disabled = false;
+  btnStartTracking.disabled = true;
+  updateMetrics(0, null, null);
+  updateStatus('Ready to Capture\nPress CAPTURE REFERENCE');
+  showToast('System reset');
+}
+
+/* ===== EVENT LISTENERS ===== */
+btnStartCamera.addEventListener('click', startCamera);
+btnCaptureRef.addEventListener('click', captureReference);
+btnStartTracking.addEventListener('click', startTracking);
+btnReset.addEventListener('click', reset);
+
+/* ===== INIT ===== */
+createDetectionBox();
+updateStatus('Ready\nPress START CAMERA');
+renderLoop();
+</script>
+
 </body>
 </html>
