@@ -176,17 +176,24 @@ function getForwardVec(){
 }
 function isInsideCone(cx,cy){
   if(!coneOrigin)return true;
+  const br=getDetectionBoxRect();
+  const apexLx=br.x, apexLy=br.y+br.height/2;
+  const c1x=br.x+br.width, c1y=br.y;
+  const c2x=br.x+br.width, c2y=br.y+br.height;
+  // Direction vectors of each ray
+  const d1x=c1x-apexLx, d1y=c1y-apexLy;
+  const d2x=c2x-apexLx, d2y=c2y-apexLy;
+  // Point relative to apex
+  const dx=cx-apexLx, dy=cy-apexLy;
+  // Must be on the forward side
   const isLandscape=window.innerWidth>=window.innerHeight;
   const fwdAngle=isLandscape?0:-Math.PI/2;
-  const br=getDetectionBoxRect();
-  // Half-width of the box = starting half-width of the trapezoid
-  const halfBase=isLandscape?br.height/2:br.width/2;
-  // Project onto forward and perp axes from coneOrigin
-  const dx=cx-coneOrigin.x, dy=cy-coneOrigin.y;
   const fwd=dx*Math.cos(fwdAngle)+dy*Math.sin(fwdAngle);
-  const side=Math.abs(dx*(-Math.sin(fwdAngle))+dy*Math.cos(fwdAngle));
   if(fwd<0)return false;
-  return side<=halfBase+fwd*Math.tan(CONE_HALF_RAD);
+  // Cross products: point must be between the two rays
+  const cross1=d1x*dy-d1y*dx;
+  const cross2=d2x*dy-d2y*dx;
+  return cross1<=0&&cross2>=0;
 }
 
 // ── CAMERA CONTROLS ──
@@ -308,17 +315,18 @@ function nccScore(frame,cx,cy){
 // Computes the axis-aligned bounding box of the ±20° cone from apex out to
 // the frame edge, so the pixel scan is tight to the valid zone.
 function getConeROI(w,h){
-  const isLandscape=window.innerWidth>=window.innerHeight;
-  const fwdAngle=isLandscape?0:-Math.PI/2;
-  const coneLen=Math.sqrt(w*w+h*h)*1.1;
-  const ray1A=fwdAngle-CONE_HALF_RAD, ray2A=fwdAngle+CONE_HALF_RAD;
+  const extLen=Math.sqrt(w*w+h*h)*1.1;
   const br=getDetectionBoxRect();
-  let base1x,base1y,base2x,base2y;
-  if(isLandscape){base1x=br.x+br.width;base1y=br.y;base2x=br.x+br.width;base2y=br.y+br.height;}
-  else{base1x=br.x;base1y=br.y;base2x=br.x+br.width;base2y=br.y;}
-  const r1x=base1x+Math.cos(ray1A)*coneLen, r1y=base1y+Math.sin(ray1A)*coneLen;
-  const r2x=base2x+Math.cos(ray2A)*coneLen, r2y=base2y+Math.sin(ray2A)*coneLen;
-  const xs=[base1x,base2x,r1x,r2x], ys=[base1y,base2y,r1y,r2y];
+  const apexLx=br.x, apexLy=br.y+br.height/2;
+  const c1x=br.x+br.width, c1y=br.y;
+  const c2x=br.x+br.width, c2y=br.y+br.height;
+  const d1x=c1x-apexLx, d1y=c1y-apexLy, l1=Math.sqrt(d1x*d1x+d1y*d1y)||1;
+  const d2x=c2x-apexLx, d2y=c2y-apexLy, l2=Math.sqrt(d2x*d2x+d2y*d2y)||1;
+  const r1x=apexLx+(d1x/l1)*extLen, r1y=apexLy+(d1y/l1)*extLen;
+  const r2x=apexLx+(d2x/l2)*extLen, r2y=apexLy+(d2y/l2)*extLen;
+  // Union of box rect + cone triangle
+  const xs=[br.x, br.x+br.width, r1x, r2x];
+  const ys=[br.y, br.y+br.height, r1y, r2y];
   return{
     xMin:Math.max(0,Math.floor(Math.min(...xs))),
     xMax:Math.min(w,Math.ceil(Math.max(...xs))),
@@ -327,21 +335,25 @@ function getConeROI(w,h){
   };
 }
 
+// Returns true if (cx,cy) is inside the detection box rect
+function isInsideBox(cx,cy){
+  const br=getDetectionBoxRect();
+  return cx>=br.x&&cx<=br.x+br.width&&cy>=br.y&&cy<=br.y+br.height;
+}
+
 function findBall(refFrame,curFrame,boxRect,searchFull=false){
   const w=curFrame.width,h=curFrame.height;let xMin,xMax,yMin,yMax;
-  if(searchFull&&coneOrigin){
-    // Once ball is in flight: tight ROI around last known position
+  if(searchFull&&coneOrigin&&lastKnownPosition){
+    // Ball in flight — tight ROI around last known position
     const R=missedFrames===0?ROI_TRACKING:ROI_SEARCHING;
     xMin=Math.max(0,Math.floor(lastKnownPosition.x-R));
     xMax=Math.min(w,Math.ceil(lastKnownPosition.x+R));
     yMin=Math.max(0,Math.floor(lastKnownPosition.y-R));
     yMax=Math.min(h,Math.ceil(lastKnownPosition.y+R));
-  }else if(searchFull){
-    // Before first detection: scan only the cone's bounding box
+  }else{
+    // Waiting for shot: scan box + cone together
     const roi=getConeROI(w,h);
     xMin=roi.xMin;xMax=roi.xMax;yMin=roi.yMin;yMax=roi.yMax;
-  }else{
-    xMin=Math.max(0,Math.floor(boxRect.x));xMax=Math.min(w,Math.ceil(boxRect.x+boxRect.width));yMin=Math.max(0,Math.floor(boxRect.y));yMax=Math.min(h,Math.ceil(boxRect.y+boxRect.height));
   }
   const gridW=Math.max(1,Math.floor((xMax-xMin)/STEP));const gridH=Math.max(1,Math.floor((yMax-yMin)/STEP));const grid=new Uint8Array(gridW*gridH);
   let idx=0;
@@ -357,8 +369,8 @@ function findBall(refFrame,curFrame,boxRect,searchFull=false){
     const cx=xMin+(sx/comp.length)*STEP,cy=yMin+(sy/comp.length)*STEP;
     const bw=(xgx-mgx+1)*STEP,bh=(ygy-mgy+1)*STEP;const radius=Math.max(bw,bh)/2;
     if(radius<MIN_RADIUS_PX||radius>MAX_RADIUS_PX)continue;if((bw>=bh?bw/bh:bh/bw)>3.5)continue;if(!passesSizeLock(radius))continue;
-    // ── CONE FILTER ──
-    if(coneOrigin&&!isInsideCone(cx,cy))continue;
+    // Cone filter: skip if outside cone AND outside box
+    if(coneOrigin&&!isInsideBox(cx,cy)&&!isInsideCone(cx,cy))continue;
     let score=comp.length*(comp.length/(bw*bh));const ncc=nccScore(curFrame,cx,cy);if(ncc>NCC_THRESHOLD)score*=(ncc+0.5);
     if(lastKnownPosition&&searchFull){const dd=Math.sqrt((cx-lastKnownPosition.x)**2+(cy-lastKnownPosition.y)**2);score/=(1+dd*0.015);}
     blobs.push({cx,cy,radius,score,size:comp.length});if(score>bestScore){bestScore=score;best={cx,cy,radius,size:comp.length};}
@@ -389,7 +401,10 @@ function processFrame(){
   const cur=grabFrame();const box=getDetectionBoxRect();const pos=findBall(referenceFrame,cur,box,true);
   if(pos){
     missedFrames=0;framesSinceFirstDetect++;
-    if(!coneOrigin){coneOrigin={x:pos.x,y:pos.y};} // lock cone origin on first detection
+    // Lock coneOrigin only once ball has left the detection box
+    if(!coneOrigin&&!isInsideBox(pos.x,pos.y)){
+      coneOrigin={x:pos.x,y:pos.y};
+    }
     const finalPos=USE_RAW_DETECTION?{x:pos.x,y:pos.y}:kalmanFilter.update(pos);
     if(USE_RAW_DETECTION)kalmanFilter.update(pos);lastKnownPosition=finalPos;
     if(lockedRadius===null){lockedRadius=pos.radius;ballTemplate=buildTemplate(cur,pos.x,pos.y,pos.radius);}else{lockedRadius=0.5*lockedRadius+0.5*pos.radius;}
@@ -398,8 +413,21 @@ function processFrame(){
     if(debugMode)updateDebugInfo(pos,true);
   }else{
     missedFrames++;if(debugMode)updateDebugInfo(null,false);
-    if(missedFrames<=MAX_MISSED_FRAMES&&kalmanFilter&&kalmanFilter.initialized){const pred=kalmanFilter.predict();lastKnownPosition=pred;capturedFrames.push({x:pred.x,y:pred.y,radius:lockedRadius||20,t:performance.now(),predicted:true});updateMetrics(capturedFrames.length,null,null,null);}
-    else if(missedFrames>MAX_MISSED_FRAMES){setStatus('Shot Complete ✓\nBall exited frame');showToast('🏌️ Shot complete — press RESET');tracking=false;if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}btnReset.disabled=false;}
+    if(missedFrames<=MAX_MISSED_FRAMES&&kalmanFilter&&kalmanFilter.initialized){
+      const pred=kalmanFilter.predict();lastKnownPosition=pred;
+      capturedFrames.push({x:pred.x,y:pred.y,radius:lockedRadius||20,t:performance.now(),predicted:true});
+      updateMetrics(capturedFrames.length,null,null,null);
+    }else if(missedFrames>MAX_MISSED_FRAMES){
+      // Only declare shot complete if ball actually travelled (left the box)
+      if(coneOrigin){
+        setStatus('Shot Complete ✓\nBall exited frame');showToast('🏌️ Shot complete — press RESET');
+        tracking=false;if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}
+        btnReset.disabled=false;
+      }else{
+        // Ball disappeared from box before shot — reset miss counter, keep waiting
+        missedFrames=0;
+      }
+    }
   }
 }
 
@@ -438,45 +466,42 @@ function drawConeAndArrow(vw,vh,t){
   // (left edge in landscape, bottom edge in portrait) in video pixel coords.
   // These are the exact box corners so the cone visually connects to the box.
   const br=getDetectionBoxRect();
-  let base1x, base1y, base2x, base2y;
-  if(isLandscape){
-    // top-right and bottom-right corners of the box
-    base1x=br.x+br.width; base1y=br.y;
-    base2x=br.x+br.width; base2y=br.y+br.height;
-  } else {
-    // top-left and top-right corners of the box (portrait: ball goes upward)
-    base1x=br.x;          base1y=br.y;
-    base2x=br.x+br.width; base2y=br.y;
-  }
-
-  const ray1A=fwdAngle-CONE_HALF_RAD;
-  const ray2A=fwdAngle+CONE_HALF_RAD;
-  const r1x=base1x+Math.cos(ray1A)*coneLen, r1y=base1y+Math.sin(ray1A)*coneLen;
-  const r2x=base2x+Math.cos(ray2A)*coneLen, r2y=base2y+Math.sin(ray2A)*coneLen;
+  // Apex = midpoint of the left edge of the box
+  const apexLx = br.x,              apexLy = br.y + br.height/2;
+  // The two rays pass through the top-right and bottom-right corners
+  const cornerTopX = br.x+br.width, cornerTopY = br.y;
+  const cornerBotX = br.x+br.width, cornerBotY = br.y+br.height;
+  // Extend each ray well past the frame from its corner
+  const extLen = isLandscape ? vw*1.5 : vh*1.5;
+  const dir1x=cornerTopX-apexLx, dir1y=cornerTopY-apexLy;
+  const len1=Math.sqrt(dir1x*dir1x+dir1y*dir1y)||1;
+  const dir2x=cornerBotX-apexLx, dir2y=cornerBotY-apexLy;
+  const len2=Math.sqrt(dir2x*dir2x+dir2y*dir2y)||1;
+  const r1x=apexLx+(dir1x/len1)*extLen, r1y=apexLy+(dir1y/len1)*extLen;
+  const r2x=apexLx+(dir2x/len2)*extLen, r2y=apexLy+(dir2y/len2)*extLen;
 
   ctx.save();
 
-  // Filled trapezoid zone (subtle)
+  // Filled triangle zone (subtle)
   ctx.beginPath();
-  ctx.moveTo(base1x,base1y);
+  ctx.moveTo(apexLx,apexLy);
   ctx.lineTo(r1x,r1y);
   ctx.lineTo(r2x,r2y);
-  ctx.lineTo(base2x,base2y);
   ctx.closePath();
   ctx.fillStyle='rgba(255,220,0,0.06)';ctx.fill();
 
-  // Cone boundary dashes — from box corners outward
+  // Cone boundary dashes — apex to far edge
   ctx.setLineDash([Math.round(12*sc),Math.round(5*sc)]);
   ctx.strokeStyle='rgba(255,220,0,0.5)';ctx.lineWidth=lw;
-  ctx.beginPath();ctx.moveTo(base1x,base1y);ctx.lineTo(r1x,r1y);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(base2x,base2y);ctx.lineTo(r2x,r2y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(apexLx,apexLy);ctx.lineTo(r1x,r1y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(apexLx,apexLy);ctx.lineTo(r2x,r2y);ctx.stroke();
   ctx.setLineDash([]);
 
-  // Angle labels
+  // Angle labels near the corner points
   ctx.font=`bold ${Math.round(10*sc)}px system-ui`;ctx.fillStyle='rgba(255,220,0,0.8)';ctx.textAlign='center';
   const lblOff=Math.round(22*sc);
-  ctx.fillText(`-${CONE_HALF_DEG}°`,base1x+Math.cos(ray1A)*lblOff,base1y+Math.sin(ray1A)*lblOff);
-  ctx.fillText(`+${CONE_HALF_DEG}°`,base2x+Math.cos(ray2A)*lblOff,base2y+Math.sin(ray2A)*lblOff);
+  ctx.fillText(`-${CONE_HALF_DEG}°`,cornerTopX+Math.cos(fwdAngle-CONE_HALF_RAD)*lblOff,cornerTopY+Math.sin(fwdAngle-CONE_HALF_RAD)*lblOff);
+  ctx.fillText(`+${CONE_HALF_DEG}°`,cornerBotX+Math.cos(fwdAngle+CONE_HALF_RAD)*lblOff,cornerBotY+Math.sin(fwdAngle+CONE_HALF_RAD)*lblOff);
 
   // ── Centre guideline — full width/height line through the midpoint of the frame ──
   // In landscape this is a horizontal line at video-centre-Y; portrait a vertical line at centre-X.
