@@ -107,17 +107,20 @@ const DIFF_THR=15,MIN_BLOB_PX=3,MAX_BLOB_PX=40000,MIN_RADIUS_PX=3,MAX_RADIUS_PX=
 const RADIUS_TOLERANCE=0.75,ROI_TRACKING=300,ROI_SEARCHING=500,MAX_MISSED_FRAMES=20;
 const USE_RAW_DETECTION=true;
 const WHITE_BRIGHTNESS_MIN=145,WHITE_CHROMA_MAX=65;
-// NCC disabled during flight to avoid template lock-on stale position
 const NCC_WARMUP_FRAMES=0,NCC_THRESHOLD=0.50;
 const USE_VERTICAL_STRIP=true,STRIP_WIDTH_PERCENT=0.45,BOX_SIZE=200;
 // CONE
 const CONE_HALF_DEG=20;
 const CONE_HALF_RAD=CONE_HALF_DEG*Math.PI/180;
 
-// ── FIX: Forward progress scoring weights ──
-// Instead of penalising distance from last position (which caused curling),
-// we REWARD movement in the forward direction of travel.
-const FORWARD_PROGRESS_WEIGHT = 0.02; // bonus per px of forward movement
+// ── DIRECTION LOCK (the key fix for straight-ball-curving-trail bug) ──
+// After DIRECTION_LOCK_FRAMES in-flight frames, compute a mean direction from
+// those frames and lock it. All subsequent detections are filtered: any blob
+// whose angle from lastKnown deviates > DIRECTION_MAX_DEV_DEG is rejected.
+// This makes a straight putt produce a straight trail no matter how noisy pixels are.
+const DIRECTION_LOCK_FRAMES = 4;      // use frames 1-4 in flight to compute true direction
+const DIRECTION_MAX_DEV_DEG = 30;     // max degrees a new detection can deviate from locked dir
+const FORWARD_PROGRESS_WEIGHT = 0.025;
 
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
@@ -147,8 +150,13 @@ let detectionBox=null,kalmanFilter=null,lastKnownPosition=null;
 let lockedRadius=null,ballTemplate=null,missedFrames=0,trackingLoopId=null;
 let lastCaptureTime=0,framesSinceFirstDetect=0,debugMode=false;
 let lastDebugBlobs=[],lastDebugGrid=null,coneOrigin=null,ballInFlight=false;
-// ── FIX: track inferred velocity direction for forward-bias scoring ──
 let flightVelocity={x:0,y:0};
+// ── DIRECTION LOCK state ──
+let lockedDir=null;          // {x,y} unit vector locked after DIRECTION_LOCK_FRAMES
+let earlyFlightFrames=[];    // raw positions during lock-building phase
+let lastFrameTime=0;
+let projectedPath=[];        // pre-computed dots for the exit trail
+let projectedPathIdx=0;      // how many have been dripped so far
 
 const offscreen=document.createElement('canvas');
 const offscreenCtx=offscreen.getContext('2d',{willReadFrequently:true});
@@ -199,52 +207,116 @@ function isInsideCone(cx,cy){
 }
 
 // ── CAMERA CONTROLS ──
+// Golfboy-style: hammer the camera to absolute minimum exposure time on start
+// and re-enforce it every 2 seconds so auto-exposure can never sneak back in.
 let imageCapturer=null,cameraCapabilities={};
+let shutterEnforcerTimer=null;
+
 async function initCameraControls(track){
   const caps=track.getCapabilities?track.getCapabilities():{};
   cameraCapabilities=caps;
   if(typeof ImageCapture!=='undefined'){try{imageCapturer=new ImageCapture(track);}catch(e){imageCapturer=null;}}
+
   const hasShutter=!!(caps.exposureTime);
   capShutter.textContent=hasShutter?'OK':'N/A';capShutter.className='cap-badge '+(hasShutter?'cap-yes':'cap-no');
   if(hasShutter){
     slShutter.min=caps.exposureTime.min??100;
     slShutter.max=caps.exposureTime.max??33333;
+    // Default to absolute minimum (fastest possible shutter — Golfboy approach)
     slShutter.value=slShutter.min;
     slShutter.disabled=false;
     updateShutterLabel(slShutter.value);
   }else{slShutter.disabled=true;}
+
   const hasISO=!!(caps.iso);
   capISO.textContent=hasISO?'OK':'N/A';capISO.className='cap-badge '+(hasISO?'cap-yes':'cap-no');
-  if(hasISO){slISO.min=caps.iso.min??50;slISO.max=caps.iso.max??3200;slISO.value=Math.max(slISO.min,Math.min(400,slISO.max));slISO.disabled=false;valISO.textContent=slISO.value;}else{slISO.disabled=true;}
+  if(hasISO){
+    slISO.min=caps.iso.min??50;slISO.max=caps.iso.max??3200;
+    // Max ISO to compensate for dark image from fast shutter
+    slISO.value=Math.min(slISO.max,3200);
+    slISO.disabled=false;valISO.textContent=slISO.value;
+  }else{slISO.disabled=true;}
+
   const hasEV=!!(caps.exposureCompensation);
   capEV.textContent=hasEV?'OK':'N/A';capEV.className='cap-badge '+(hasEV?'cap-yes':'cap-no');
-  if(hasEV){slEV.min=caps.exposureCompensation.min??-3;slEV.max=caps.exposureCompensation.max??0;slEV.value=Math.max(slEV.min,-2);slEV.disabled=false;valEV.textContent=parseFloat(slEV.value).toFixed(1);}else{slEV.disabled=true;}
+  if(hasEV){
+    slEV.min=caps.exposureCompensation.min??-3;slEV.max=caps.exposureCompensation.max??0;
+    slEV.value=slEV.max; // EV to max (0) — we darken via shutter not EV
+    slEV.disabled=false;valEV.textContent=parseFloat(slEV.value).toFixed(1);
+  }else{slEV.disabled=true;}
+
   const supported=[hasShutter&&'Shutter',hasISO&&'ISO',hasEV&&'EV'].filter(Boolean);
-  camHint.textContent=supported.length===0
-    ?'⚠️ No manual controls. Use bright flicker-free LED lighting for best results.'
-    :'💡 Shutter set to MINIMUM (fastest). Image will be dark — use bright flicker-free LED lights.';
-  await applyFastShutter(track);
+  if(supported.length===0){
+    camHint.textContent='⚠️ No manual controls available. Use very bright flicker-free LED lighting.';
+  }else{
+    camHint.textContent="⚡ MINIMUM shutter + MAX ISO active. Image looks dark — that's correct. Use bright LED lights pointed at the ball.";
+  }
+
+  // Apply immediately, then re-apply every 2s to prevent auto-exposure drift
+  await enforceGolfboyShutter(track);
+  if(shutterEnforcerTimer)clearInterval(shutterEnforcerTimer);
+  shutterEnforcerTimer=setInterval(()=>{
+    const t=video.srcObject?.getVideoTracks()[0];
+    if(t)enforceGolfboyShutter(t);
+  },2000);
 }
-function updateShutterLabel(us){us=parseInt(us);valShutter.textContent=us<1000?us+'µs':'1/'+Math.round(1e6/us)+'s';}
-async function applyFastShutter(track){
-  if(!track)return;const caps=cameraCapabilities;const constraints={advanced:[{}]};let applied=false;
-  if(caps.exposureMode&&caps.exposureMode.includes('manual')&&caps.exposureTime){
-    const minET=caps.exposureTime.min??100;
-    constraints.advanced[0].exposureMode='manual';
-    constraints.advanced[0].exposureTime=minET;
+
+function updateShutterLabel(us){
+  us=parseInt(us);
+  valShutter.textContent=us<1000?us+'µs':'1/'+Math.round(1e6/us)+'s';
+}
+
+// The core Golfboy approach: lock exposure to absolute minimum, max ISO,
+// force manual mode, kill EV compensation that fights us.
+async function enforceGolfboyShutter(track){
+  if(!track)return;
+  const caps=cameraCapabilities;
+  const adv={};
+  let applied=false;
+
+  if(caps.exposureMode?.includes('manual')&&caps.exposureTime){
+    const targetET=parseInt(slShutter.value)||caps.exposureTime.min||100;
+    adv.exposureMode='manual';
+    adv.exposureTime=targetET;
     applied=true;
   }
-  if(caps.exposureCompensation){const cap=caps.exposureCompensation;constraints.advanced[0].exposureCompensation=Math.max(cap.min??-3,Math.min(cap.max??0,-2.5));applied=true;}
-  if(applied){try{await track.applyConstraints(constraints);const s=track.getSettings?track.getSettings():{};if(s.exposureTime){slShutter.value=s.exposureTime;updateShutterLabel(s.exposureTime);document.getElementById('mShutter').textContent=valShutter.textContent;}if(s.exposureCompensation!==undefined){slEV.value=s.exposureCompensation;valEV.textContent=parseFloat(s.exposureCompensation).toFixed(1);}}catch(e){console.warn('Fast shutter failed:',e);}}
+  if(caps.iso){
+    const targetISO=parseInt(slISO.value)||Math.min(caps.iso.max,3200);
+    adv.iso=Math.max(caps.iso.min,Math.min(caps.iso.max,targetISO));
+    applied=true;
+  }
+  // EV at max (0) — we're not using EV to darken, shutter does that
+  if(caps.exposureCompensation){
+    adv.exposureCompensation=parseFloat(slEV.value)??0;
+    applied=true;
+  }
+  // Also request high frame rate mode if available — some cameras expose this
+  if(caps.frameRate){
+    adv.frameRate=caps.frameRate.max||60;
+  }
+
+  if(!applied)return;
+  try{
+    await track.applyConstraints({advanced:[adv]});
+    // Read back actual applied values and update UI
+    const s=track.getSettings?.()??{};
+    if(s.exposureTime!=null){
+      slShutter.value=s.exposureTime;
+      updateShutterLabel(s.exposureTime);
+      document.getElementById('mShutter').textContent=valShutter.textContent;
+    }
+    if(s.iso!=null){slISO.value=s.iso;valISO.textContent=s.iso;}
+    if(s.exposureCompensation!=null){slEV.value=s.exposureCompensation;valEV.textContent=parseFloat(s.exposureCompensation).toFixed(1);}
+  }catch(e){
+    // Some constraints may be partially supported — not a fatal error
+    console.warn('Shutter enforce failed:',e.message||e);
+  }
 }
+
+// When user manually moves sliders, apply immediately AND restart enforcer
 async function applySliderConstraints(){
   const track=video.srcObject?.getVideoTracks()[0];if(!track)return;
-  const caps=cameraCapabilities,adv={};
-  if(caps.exposureTime&&!slShutter.disabled){adv.exposureMode='manual';adv.exposureTime=parseInt(slShutter.value);}
-  if(caps.iso&&!slISO.disabled)adv.iso=parseInt(slISO.value);
-  if(caps.exposureCompensation&&!slEV.disabled)adv.exposureCompensation=parseFloat(slEV.value);
-  if(Object.keys(adv).length===0)return;
-  try{await track.applyConstraints({advanced:[adv]});}catch(e){console.warn('Constraint failed:',e);}
+  await enforceGolfboyShutter(track);
 }
 slShutter.addEventListener('input',()=>{updateShutterLabel(slShutter.value);applySliderConstraints();});
 slISO.addEventListener('input',()=>{valISO.textContent=slISO.value;applySliderConstraints();});
@@ -273,7 +345,15 @@ async function startCamera(){
     const track=stream.getVideoTracks()[0];const settings=track.getSettings();const fps=settings.frameRate||'?';
     const applyDimensions=()=>{if(!video.videoWidth||!video.videoHeight)return;offscreen.width=video.videoWidth;offscreen.height=video.videoHeight;const dpr=window.devicePixelRatio||1;overlay.width=Math.round(window.innerWidth*dpr);overlay.height=Math.round(window.innerHeight*dpr);overlay.style.width=window.innerWidth+'px';overlay.style.height=window.innerHeight+'px';};
     if(video.videoWidth&&video.videoHeight)applyDimensions();else video.addEventListener('loadedmetadata',applyDimensions,{once:true});
-    await new Promise(r=>setTimeout(r,600));await initCameraControls(track);
+    // Wait for camera to fully settle, then init controls with retries
+    await new Promise(r=>setTimeout(r,800));
+    await initCameraControls(track);
+    // Re-enforce 3 more times as camera auto-exposure stabilises
+    for(const delay of [500,1200,2500]){
+      await new Promise(r=>setTimeout(r,delay));
+      const t=video.srcObject?.getVideoTracks()[0];
+      if(t)await enforceGolfboyShutter(t);
+    }
     document.getElementById('camPanelToggle').classList.add('show');btnStartCamera.disabled=true;btnCaptureRef.disabled=false;btnDebug.disabled=false;
     setStatus(`Camera Active\n${video.videoWidth}x${video.videoHeight} @${fps}fps\nReady to capture`);showToast(`📷 Camera started — ${fps}fps`);
   }catch(e){console.error(e);showToast('❌ Failed to access camera');setStatus('Camera Error');}
@@ -356,15 +436,47 @@ function isInsideBox(cx,cy){
   return cx>=br.x&&cx<=br.x+br.width&&cy>=br.y&&cy<=br.y+br.height;
 }
 
-// ── FIX: compute forward progress of a candidate relative to last known position ──
-// Returns positive value if candidate is further along the ball's direction of travel.
+// ── DIRECTION LOCK helpers ──
+
+// Call with each new in-flight position. Once we have enough frames, compute
+// the mean displacement vector and lock it as the canonical travel direction.
+function tryLockDirection(x,y){
+  earlyFlightFrames.push({x,y});
+  if(lockedDir!==null||earlyFlightFrames.length<DIRECTION_LOCK_FRAMES)return;
+  // Compute mean direction from first→last of early frames (robust to noise)
+  const first=earlyFlightFrames[0];
+  const last=earlyFlightFrames[earlyFlightFrames.length-1];
+  let dx=last.x-first.x, dy=last.y-first.y;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2)return; // ball barely moved — wait longer
+  lockedDir={x:dx/len, y:dy/len};
+  // Seed flightVelocity magnitude from these frames too
+  const dt=Math.max((performance.now()-lastFrameTime)/1000*DIRECTION_LOCK_FRAMES, 0.001);
+  flightVelocity.x=lockedDir.x*(len/dt)*0.5;
+  flightVelocity.y=lockedDir.y*(len/dt)*0.5;
+}
+
+// Returns true if moving from lastKnownPosition to (cx,cy) is within
+// DIRECTION_MAX_DEV_DEG of the locked direction. Always passes if not locked yet.
+function passesDirectionGate(cx,cy){
+  if(!lockedDir||!lastKnownPosition)return true;
+  const dx=cx-lastKnownPosition.x, dy=cy-lastKnownPosition.y;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  if(len<2)return true; // tiny movement — don't gate it
+  const dot=dx/len*lockedDir.x+dy/len*lockedDir.y; // cosine of angle
+  const maxCos=Math.cos(DIRECTION_MAX_DEV_DEG*Math.PI/180);
+  return dot>=maxCos;
+}
+
+// Forward progress along the LOCKED direction (or velocity dir if not locked yet)
 function forwardProgress(cx,cy){
   if(!lastKnownPosition||!ballInFlight)return 0;
-  const dx=cx-lastKnownPosition.x;
-  const dy=cy-lastKnownPosition.y;
-  // Dot with velocity direction (normalised)
-  const vLen=Math.sqrt(flightVelocity.x*flightVelocity.x+flightVelocity.y*flightVelocity.y)||1;
-  return(dx*flightVelocity.x+dy*flightVelocity.y)/vLen;
+  const dx=cx-lastKnownPosition.x, dy=cy-lastKnownPosition.y;
+  const dir=lockedDir||(()=>{
+    const vLen=Math.sqrt(flightVelocity.x**2+flightVelocity.y**2)||1;
+    return{x:flightVelocity.x/vLen, y:flightVelocity.y/vLen};
+  })();
+  return dx*dir.x+dy*dir.y;
 }
 
 function findBall(refFrame,curFrame,boxRect,searchFull=false){
@@ -404,6 +516,11 @@ function findBall(refFrame,curFrame,boxRect,searchFull=false){
     if(!ballInFlight&&!passesSizeLock(radius))continue;
     if(ballInFlight&&!isInsideBox(cx,cy)&&!isInsideCone(cx,cy))continue;
 
+    // ── DIRECTION GATE: once direction is locked, hard-reject blobs deviating too far ──
+    if(ballInFlight&&lockedDir&&lastKnownPosition&&!passesDirectionGate(cx,cy)){
+      continue; // blob is going the wrong way — skip entirely
+    }
+
     // ── Base score: blob compactness (same as before) ──
     let score=comp.length*(comp.length/(bw*bh));
 
@@ -438,7 +555,9 @@ function startTracking(){
   if(!referenceFrame)return;tracking=true;capturedFrames=[];kalmanFilter=new KalmanFilter();
   lastKnownPosition=null;lockedRadius=null;ballTemplate=null;missedFrames=0;lastCaptureTime=0;
   framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;
-  flightVelocity={x:0,y:0}; // ── FIX: reset velocity
+  flightVelocity={x:0,y:0};
+  lockedDir=null; earlyFlightFrames=[]; lastFrameTime=0;
+  projectedPath=[]; projectedPathIdx=0;
   lastDebugBlobs=[];lastDebugGrid=null;
   detectionBox.classList.remove('detecting');detectionBox.classList.add('locked');metricsPanel.classList.add('show');
   btnStartTracking.disabled=true;btnCaptureRef.disabled=true;setStatus('TRACKING ACTIVE');showToast('🏌️ Tracking started — swing!');
@@ -462,13 +581,18 @@ function processFrame(){
 
     // ── FIX: update flightVelocity from actual detections (not Kalman) so ROI leads forward ──
     if(lastKnownPosition&&ballInFlight){
-      const dt=Math.max((performance.now()-lastCaptureTime)/1000,0.001);
+      const dt=Math.max((performance.now()-lastFrameTime)/1000,0.001);
       const rawVx=(pos.x-lastKnownPosition.x)/dt;
       const rawVy=(pos.y-lastKnownPosition.y)/dt;
-      // Smooth velocity with exponential moving average to avoid jitter
       const alpha=0.4;
       flightVelocity.x=alpha*rawVx+(1-alpha)*flightVelocity.x;
       flightVelocity.y=alpha*rawVy+(1-alpha)*flightVelocity.y;
+    }
+    lastFrameTime=performance.now();
+
+    // ── DIRECTION LOCK: collect early frames and lock direction once enough data ──
+    if(ballInFlight){
+      tryLockDirection(pos.x,pos.y);
     }
 
     const finalPos=USE_RAW_DETECTION?{x:pos.x,y:pos.y}:kalmanFilter.update(pos);
@@ -482,21 +606,42 @@ function processFrame(){
   }else{
     if(ballInFlight){
       missedFrames++;
-      if(missedFrames<=MAX_MISSED_FRAMES&&kalmanFilter&&kalmanFilter.initialized){
-        const pred=kalmanFilter.predict();
-        // ── FIX: also advance lastKnownPosition using velocity so next ROI stays ahead ──
-        if(flightVelocity.x!==0||flightVelocity.y!==0){
-          const dt=0.016; // assume ~60fps
-          lastKnownPosition={
-            x:(lastKnownPosition||pred).x+flightVelocity.x*dt,
-            y:(lastKnownPosition||pred).y+flightVelocity.y*dt
-          };
-        }else{
-          lastKnownPosition=pred;
+
+      // On first missed frame: pre-compute the full projected path and store it.
+      // Each subsequent missed frame drips ONE dot onto the screen so the trail
+      // animates gradually (like the ball is still travelling) rather than popping in.
+      if(missedFrames===1&&lastKnownPosition&&(lockedDir||(flightVelocity.x!==0||flightVelocity.y!==0))){
+        const vw=video.videoWidth||offscreen.width||1280;
+        const vh=video.videoHeight||offscreen.height||720;
+        const dir=lockedDir||(()=>{
+          const vLen=Math.sqrt(flightVelocity.x**2+flightVelocity.y**2)||1;
+          return{x:flightVelocity.x/vLen,y:flightVelocity.y/vLen};
+        })();
+        // Step matches real ball speed: distance the ball moved per frame while tracked
+        const speed=Math.sqrt(flightVelocity.x**2+flightVelocity.y**2);
+        // px per video frame (~16ms) — this makes predicted dots appear at same rate as real ones
+        const step=Math.max(speed*0.016, (lockedRadius||14)*1.2, 10);
+        projectedPath=[];
+        let px=lastKnownPosition.x, py=lastKnownPosition.y;
+        let safe=0;
+        while(safe++<500){
+          px+=dir.x*step; py+=dir.y*step;
+          if(px<-200||px>vw+200||py<-200||py>vh+200)break;
+          projectedPath.push({x:px,y:py,radius:lockedRadius||14,predicted:true});
         }
-        capturedFrames.push({x:lastKnownPosition.x,y:lastKnownPosition.y,radius:lockedRadius||20,t:performance.now(),predicted:true});
+        projectedPathIdx=0;
+      }
+
+      // Drip one pre-computed dot per frame onto capturedFrames
+      if(projectedPath.length>0&&projectedPathIdx<projectedPath.length){
+        const dot=projectedPath[projectedPathIdx++];
+        capturedFrames.push({...dot,t:performance.now()});
+        lastKnownPosition={x:dot.x,y:dot.y};
         updateMetrics(capturedFrames.length,null,null,null);
-      }else if(missedFrames>MAX_MISSED_FRAMES){
+      }
+
+      // End once all dots have been dripped (or hard cap)
+      if(projectedPathIdx>=projectedPath.length&&projectedPath.length>0){
         setStatus('Shot Complete ✓\nBall exited frame');showToast('🏌️ Shot complete — press RESET');
         tracking=false;if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}
         btnReset.disabled=false;
@@ -511,7 +656,8 @@ function updateDebugInfo(pos,found){
   if(!debugMode)return;const track=video.srcObject?.getVideoTracks()[0];let shutterStr='--',isoStr='--';
   if(track?.getSettings){const s=track.getSettings();if(s.exposureTime)shutterStr='1/'+Math.round(1e6/s.exposureTime)+'s ('+s.exposureTime+'µs)';if(s.iso)isoStr=s.iso;}
   const vSpd=Math.round(Math.sqrt(flightVelocity.x**2+flightVelocity.y**2));
-  debugInfoEl.textContent=[`📹 ${video.videoWidth}x${video.videoHeight}`,`⚡ Shutter: ${shutterStr}`,`📷 ISO: ${isoStr}`,`🔍 Blobs found: ${lastDebugBlobs.length}`,found?`✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}`:`❌ Ball: not found (miss ${missedFrames})`,`📦 Frames: ${capturedFrames.length}`,`🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,`🚀 In flight: ${ballInFlight}`,`💨 Speed: ${vSpd}px/s`,`🎯 Cone origin: ${coneOrigin?`(${Math.round(coneOrigin.x)},${Math.round(coneOrigin.y)})`:'--'}`].join('\n');
+  const dirStr=lockedDir?`LOCKED (${Math.round(Math.atan2(lockedDir.y,lockedDir.x)*180/Math.PI)}°)`:`building (${earlyFlightFrames.length}/${DIRECTION_LOCK_FRAMES})`;
+  debugInfoEl.textContent=[`📹 ${video.videoWidth}x${video.videoHeight}`,`⚡ Shutter: ${shutterStr}`,`📷 ISO: ${isoStr}`,`🔍 Blobs found: ${lastDebugBlobs.length}`,found?`✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}`:`❌ Ball: not found (miss ${missedFrames})`,`📦 Frames: ${capturedFrames.length}`,`🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,`🚀 In flight: ${ballInFlight}`,`💨 Speed: ${vSpd}px/s`,`🧭 Dir: ${dirStr}`,`🎯 Cone origin: ${coneOrigin?`(${Math.round(coneOrigin.x)},${Math.round(coneOrigin.y)})`:'--'}`].join('\n');
 }
 
 // ── TRAJECTORY ──
@@ -638,9 +784,85 @@ function drawFrame(){
   if(video.videoWidth&&video.videoHeight){drawConeAndArrow(vw,vh,t);}
 
   if(capturedFrames.length>0){
-    if(capturedFrames.length>1){ctx.strokeStyle='rgba(0,255,100,0.9)';ctx.lineWidth=lw*2;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(capturedFrames[0].x,capturedFrames[0].y);for(let i=1;i<capturedFrames.length;i++)ctx.lineTo(capturedFrames[i].x,capturedFrames[i].y);ctx.stroke();}
-    for(let i=0;i<capturedFrames.length;i++){const f=capturedFrames[i],op=0.25+(i/capturedFrames.length)*0.25;ctx.fillStyle=f.predicted?`rgba(255,255,100,${op})`:`rgba(255,255,255,${op})`;ctx.strokeStyle=f.predicted?`rgba(200,200,100,${op*.8})`:`rgba(200,200,200,${op*.8})`;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(f.x,f.y,f.radius,0,Math.PI*2);ctx.fill();ctx.stroke();}
-    const lat=capturedFrames[capturedFrames.length-1];ctx.strokeStyle='rgba(255,220,0,1)';ctx.lineWidth=lw*1.5;ctx.beginPath();ctx.arc(lat.x,lat.y,lat.radius+5,0,Math.PI*2);ctx.stroke();
+    // Split frames into real detections vs predicted extrapolations
+    const realFrames=capturedFrames.filter(f=>!f.predicted);
+    const predFrames=capturedFrames.filter(f=>f.predicted);
+    const sc2=t?1/t.scale:1;
+    const ballR=Math.max(lockedRadius||14,8);
+
+    // ── 1. Solid green trail through real detections ──
+    if(realFrames.length>1){
+      ctx.save();
+      ctx.strokeStyle='rgba(0,255,100,0.9)';ctx.lineWidth=lw*2.5;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.beginPath();ctx.moveTo(realFrames[0].x,realFrames[0].y);
+      for(let i=1;i<realFrames.length;i++)ctx.lineTo(realFrames[i].x,realFrames[i].y);
+      ctx.stroke();ctx.restore();
+    }
+
+    // ── 2. Real detection dots (white, increasing opacity) ──
+    ctx.save();
+    for(let i=0;i<realFrames.length;i++){
+      const f=realFrames[i];
+      const op=0.3+(i/Math.max(realFrames.length-1,1))*0.5; // 0.3 → 0.8
+      ctx.fillStyle=`rgba(255,255,255,${op})`;
+      ctx.strokeStyle=`rgba(180,255,180,${op*0.7})`;
+      ctx.lineWidth=lw;
+      ctx.beginPath();ctx.arc(f.x,f.y,ballR,0,Math.PI*2);ctx.fill();ctx.stroke();
+    }
+    ctx.restore();
+
+    // ── 3. Predicted / extrapolated frames: dashed yellow line + bright circles ──
+    if(predFrames.length>0){
+      // Connect last real frame to first predicted, then through all predicted
+      const bridgeStart=realFrames.length>0?realFrames[realFrames.length-1]:predFrames[0];
+      ctx.save();
+      ctx.setLineDash([Math.round(10*sc2),Math.round(6*sc2)]);
+      ctx.strokeStyle='rgba(255,220,0,0.85)';ctx.lineWidth=lw*2.5;ctx.lineCap='round';ctx.lineJoin='round';
+      ctx.beginPath();ctx.moveTo(bridgeStart.x,bridgeStart.y);
+      for(const f of predFrames)ctx.lineTo(f.x,f.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // Bright yellow circles for each predicted position
+      ctx.save();
+      for(let i=0;i<predFrames.length;i++){
+        const f=predFrames[i];
+        const op=0.9-i/Math.max(predFrames.length,1)*0.4; // fade slightly toward end
+        // Outer glow ring
+        ctx.strokeStyle=`rgba(255,220,0,${op*0.4})`;
+        ctx.lineWidth=lw*4;
+        ctx.beginPath();ctx.arc(f.x,f.y,ballR+6*sc2,0,Math.PI*2);ctx.stroke();
+        // Solid circle
+        ctx.fillStyle=`rgba(255,220,0,${op*0.75})`;
+        ctx.strokeStyle=`rgba(255,255,180,${op})`;
+        ctx.lineWidth=lw*1.5;
+        ctx.beginPath();ctx.arc(f.x,f.y,ballR,0,Math.PI*2);ctx.fill();ctx.stroke();
+      }
+      ctx.restore();
+
+      // Arrow tip at the end of the predicted path
+      const last=predFrames[predFrames.length-1];
+      const prev=predFrames.length>1?predFrames[predFrames.length-2]:bridgeStart;
+      const adx=last.x-prev.x,ady=last.y-prev.y,alen=Math.sqrt(adx*adx+ady*ady)||1;
+      const anx=adx/alen,any=ady/alen;
+      const arrowSize=Math.round(18*sc2);
+      ctx.save();
+      ctx.fillStyle='rgba(255,220,0,0.9)';
+      ctx.beginPath();
+      ctx.moveTo(last.x+anx*arrowSize,last.y+any*arrowSize);
+      ctx.lineTo(last.x+(-any)*arrowSize*0.5,last.y+(anx)*arrowSize*0.5);
+      ctx.lineTo(last.x-(-any)*arrowSize*0.5,last.y-(anx)*arrowSize*0.5);
+      ctx.closePath();ctx.fill();
+      ctx.restore();
+    }
+
+    // ── 4. Bright yellow ring around the very last known position (real or predicted) ──
+    const lat=capturedFrames[capturedFrames.length-1];
+    ctx.save();
+    ctx.strokeStyle='rgba(255,220,0,1)';ctx.lineWidth=lw*2;
+    ctx.beginPath();ctx.arc(lat.x,lat.y,ballR+8*sc2,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
   }
   resetTransform();
 }
@@ -653,6 +875,8 @@ function reset(){
   referenceFrame=null;capturedFrames=[];kalmanFilter=null;lastKnownPosition=null;lockedRadius=null;ballTemplate=null;
   missedFrames=0;lastCaptureTime=0;framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;
   flightVelocity={x:0,y:0};
+  lockedDir=null; earlyFlightFrames=[]; lastFrameTime=0;
+  projectedPath=[]; projectedPathIdx=0;
   lastDebugBlobs=[];lastDebugGrid=null;
   ctx.clearRect(0,0,overlay.width,overlay.height);detectionBox.classList.remove('detecting','locked');metricsPanel.classList.remove('show');
   btnCaptureRef.disabled=false;btnStartTracking.disabled=true;updateMetrics(0,null,null,null);setStatus('Ready to Capture\nPress CAPTURE REFERENCE');showToast('🔄 Reset');
