@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,141 +7,58 @@
 <title>Golf Ball Tracker</title>
 <style>
 :root{
-  --safe-top:env(safe-area-inset-top);
-  --safe-right:env(safe-area-inset-right);
-  --safe-bottom:env(safe-area-inset-bottom);
-  --safe-left:env(safe-area-inset-left);
-  --black:#0c0c0c;
-  --red:#e7222a;
-  --darkred:#ba1e1e;
-  --steel:#1f1f1f;
+  --safe-top:env(safe-area-inset-top);--safe-right:env(safe-area-inset-right);
+  --safe-bottom:env(safe-area-inset-bottom);--safe-left:env(safe-area-inset-left);
+  --black:#0c0c0c;--red:#e7222a;--darkred:#ba1e1e;--steel:#1f1f1f;
   --r-sm:6px;--r-md:10px;--r-lg:16px;
 }
-html,body{margin:0;padding:0;background:var(--black);color:#fff;
-  font-family:system-ui,-apple-system,sans-serif;height:100%;overflow:hidden;touch-action:manipulation;}
+html,body{margin:0;padding:0;background:var(--black);color:#fff;font-family:system-ui,-apple-system,sans-serif;height:100%;overflow:hidden;touch-action:manipulation;}
 #wrap{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;background:var(--black);}
 video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 #overlay{pointer-events:none;}
-
-/* ── BUTTONS ── */
-.btn-primary{
-  position:absolute;left:50%;transform:translateX(-50%);
-  bottom:calc(20px + var(--safe-bottom));
-  background:linear-gradient(135deg,var(--red),var(--darkred));
-  border:none;color:#fff;font-size:17px;font-weight:900;letter-spacing:.5px;
-  text-transform:uppercase;padding:14px 32px;border-radius:999px;cursor:pointer;
-  z-index:100;box-shadow:0 4px 20px rgba(231,34,42,.35);
-  transition:transform .2s,box-shadow .2s;pointer-events:auto;
-}
+.btn-primary{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--safe-bottom));background:linear-gradient(135deg,var(--red),var(--darkred));border:none;color:#fff;font-size:17px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;padding:14px 32px;border-radius:999px;cursor:pointer;z-index:100;box-shadow:0 4px 20px rgba(231,34,42,.35);transition:transform .2s,box-shadow .2s;pointer-events:auto;}
 .btn-primary:active:not(:disabled){transform:translateX(-50%) scale(.98);}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed;}
-
-.btn-secondary{
-  position:absolute;left:50%;transform:translateX(-50%);
-  background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.15);
-  color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;
-  padding:10px 24px;border-radius:999px;cursor:pointer;z-index:100;
-  box-shadow:0 3px 14px rgba(0,0,0,.3);transition:transform .2s,opacity .2s;pointer-events:auto;
-}
+.btn-secondary{position:absolute;left:50%;transform:translateX(-50%);background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:700;letter-spacing:.5px;padding:10px 24px;border-radius:999px;cursor:pointer;z-index:100;box-shadow:0 3px 14px rgba(0,0,0,.3);transition:transform .2s,opacity .2s;pointer-events:auto;}
 .btn-secondary:active:not(:disabled){transform:translateX(-50%) scale(.98);}
 .btn-secondary:disabled{opacity:.4;cursor:not-allowed;}
 .btn-secondary.active{background:rgba(231,34,42,.25);border-color:var(--red);color:var(--red);}
-
 #btnStartCamera{bottom:calc(20px + var(--safe-bottom));}
-#btnCaptureRef {bottom:calc(80px + var(--safe-bottom));}
+#btnCaptureRef{bottom:calc(80px + var(--safe-bottom));}
 #btnStartTracking{bottom:calc(135px + var(--safe-bottom));}
-#btnReset       {bottom:calc(190px + var(--safe-bottom));}
-#btnDebug       {bottom:calc(245px + var(--safe-bottom));font-size:11px;padding:8px 18px;}
+#btnReset{bottom:calc(190px + var(--safe-bottom));}
+#btnDebug{bottom:calc(245px + var(--safe-bottom));font-size:11px;padding:8px 18px;}
 #btnDebug.active{background:rgba(231,34,42,.25);border-color:var(--red);}
-
-/* ── STATUS ── */
-#statusBadge{
-  position:absolute;top:calc(14px + var(--safe-top));left:calc(14px + var(--safe-left));
-  font-size:12px;font-weight:800;padding:10px 14px;border-radius:var(--r-md);
-  background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.08);
-  z-index:10;white-space:pre-line;max-width:220px;line-height:1.4;
-}
-
-/* ── METRICS ── */
-#metricsPanel{
-  position:absolute;top:calc(110px + var(--safe-top));left:calc(14px + var(--safe-left));
-  z-index:10;background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.08);
-  padding:12px 14px;border-radius:var(--r-md);backdrop-filter:blur(8px);
-  display:none;min-width:140px;
-}
+#statusBadge{position:absolute;top:calc(14px + var(--safe-top));left:calc(14px + var(--safe-left));font-size:12px;font-weight:800;padding:10px 14px;border-radius:var(--r-md);background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.08);z-index:10;white-space:pre-line;max-width:220px;line-height:1.4;}
+#metricsPanel{position:absolute;top:calc(110px + var(--safe-top));left:calc(14px + var(--safe-left));z-index:10;background:rgba(31,31,31,.9);border:1px solid rgba(255,255,255,.08);padding:12px 14px;border-radius:var(--r-md);backdrop-filter:blur(8px);display:none;min-width:140px;}
 #metricsPanel.show{display:block;}
 .metric-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:16px;}
 .metric-row:last-child{margin-bottom:0;}
 .metric-label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.6);font-weight:700;}
 .metric-value{font-size:13px;color:#fff;font-weight:900;}
-
-/* ── DETECTION BOX ── */
-.detection-box{
-  position:absolute;border:3px dashed rgba(255,255,255,.6);
-  border-radius:var(--r-md);pointer-events:none;opacity:.7;transition:all .3s;
-}
+.detection-box{position:absolute;border:3px dashed rgba(255,255,255,.6);border-radius:var(--r-md);pointer-events:none;opacity:.7;transition:all .3s;}
 .detection-box.detecting{border-color:var(--red);border-style:solid;animation:pulse-detect 1.5s ease-in-out infinite;}
 .detection-box.locked{border-color:#00ff88;border-style:solid;opacity:1;animation:pulse-locked 2s ease-in-out infinite;}
-.box-label{
-  position:absolute;top:-28px;left:50%;transform:translateX(-50%);
-  font-size:11px;font-weight:900;color:rgba(255,255,255,.9);
-  text-transform:uppercase;letter-spacing:.15em;white-space:nowrap;
-}
+.box-label{position:absolute;top:-28px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:rgba(255,255,255,.9);text-transform:uppercase;letter-spacing:.15em;white-space:nowrap;}
 @keyframes pulse-detect{0%,100%{opacity:.7;box-shadow:0 0 0 0 rgba(231,34,42,.4);}50%{opacity:1;box-shadow:0 0 20px 5px rgba(231,34,42,.2);}}
 @keyframes pulse-locked{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,255,136,.4);}50%{opacity:.85;box-shadow:0 0 20px 5px rgba(0,255,136,.3);}}
-
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:calc(300px + var(--safe-bottom));left:50%;transform:translateX(-50%);
-  background:rgba(31,31,31,.95);border:1px solid var(--red);border-radius:var(--r-md);
-  padding:12px 20px;color:#fff;font-size:13px;font-weight:700;
-  box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:1000;animation:slideUp .3s ease-out;
-  backdrop-filter:blur(10px);pointer-events:none;max-width:80vw;text-align:center;
-}
+.toast{position:fixed;bottom:calc(300px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:rgba(31,31,31,.95);border:1px solid var(--red);border-radius:var(--r-md);padding:12px 20px;color:#fff;font-size:13px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:1000;animation:slideUp .3s ease-out;backdrop-filter:blur(10px);pointer-events:none;max-width:80vw;text-align:center;}
 @keyframes slideUp{from{opacity:0;transform:translate(-50%,20px);}to{opacity:1;transform:translate(-50%,0);}}
-
-/* ── CAMERA CONTROLS PANEL ── */
-#camPanel{
-  position:absolute;bottom:calc(295px + var(--safe-bottom));left:50%;transform:translateX(-50%);
-  background:rgba(20,20,20,.96);border:1px solid rgba(255,255,255,.12);
-  border-radius:var(--r-lg);padding:14px 18px 12px;z-index:100;pointer-events:auto;
-  display:none;min-width:300px;max-width:90vw;backdrop-filter:blur(10px);
-}
+#camPanel{position:absolute;bottom:calc(295px + var(--safe-bottom));left:50%;transform:translateX(-50%);background:rgba(20,20,20,.96);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-lg);padding:14px 18px 12px;z-index:100;pointer-events:auto;display:none;min-width:300px;max-width:90vw;backdrop-filter:blur(10px);}
 #camPanel.show{display:block;}
-.cam-title{font-size:10px;font-weight:800;letter-spacing:.15em;color:rgba(255,255,255,.4);
-  text-transform:uppercase;margin-bottom:10px;}
+.cam-title{font-size:10px;font-weight:800;letter-spacing:.15em;color:rgba(255,255,255,.4);text-transform:uppercase;margin-bottom:10px;}
 .slider-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .slider-row:last-child{margin-bottom:0;}
 .slider-label{font-size:10px;font-weight:900;letter-spacing:.1em;color:rgba(255,255,255,.55);white-space:nowrap;min-width:72px;}
 .slider-val{font-size:12px;color:var(--red);font-weight:900;min-width:52px;text-align:right;}
-input[type=range]{
-  -webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:99px;
-  background:rgba(255,255,255,.15);outline:none;cursor:pointer;
-}
-input[type=range]::-webkit-slider-thumb{
-  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
-  background:linear-gradient(135deg,var(--red),var(--darkred));cursor:pointer;
-  box-shadow:0 2px 8px rgba(231,34,42,.5);
-}
-input[type=range]::-moz-range-thumb{
-  width:18px;height:18px;border-radius:50%;
-  background:linear-gradient(135deg,var(--red),var(--darkred));border:none;cursor:pointer;
-}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:99px;background:rgba(255,255,255,.15);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--darkred));cursor:pointer;box-shadow:0 2px 8px rgba(231,34,42,.5);}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--red),var(--darkred));border:none;cursor:pointer;}
 .cam-hint{margin-top:8px;font-size:10px;color:rgba(255,255,255,.25);text-align:center;line-height:1.5;}
-.cap-badge{
-  display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:800;
-  letter-spacing:.08em;text-transform:uppercase;margin-left:6px;vertical-align:middle;
-}
+.cap-badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-left:6px;vertical-align:middle;}
 .cap-yes{background:rgba(0,255,100,.15);color:#00ff64;border:1px solid rgba(0,255,100,.3);}
-.cap-no {background:rgba(255,100,100,.12);color:#ff6464;border:1px solid rgba(255,100,100,.25);}
-
-/* ── DEBUG PANEL ── */
-#debugInfo{
-  position:absolute;bottom:calc(14px + var(--safe-bottom));left:calc(14px + var(--safe-left));
-  background:rgba(0,0,0,.85);border:1px solid rgba(255,255,100,.3);border-radius:var(--r-md);
-  padding:8px 12px;font-size:10px;color:rgba(255,255,100,.9);line-height:1.6;
-  z-index:200;display:none;max-width:240px;pointer-events:none;
-}
+.cap-no{background:rgba(255,100,100,.12);color:#ff6464;border:1px solid rgba(255,100,100,.25);}
+#debugInfo{position:absolute;bottom:calc(14px + var(--safe-bottom));left:calc(14px + var(--safe-left));background:rgba(0,0,0,.85);border:1px solid rgba(255,255,100,.3);border-radius:var(--r-md);padding:8px 12px;font-size:10px;color:rgba(255,255,100,.9);line-height:1.6;z-index:200;display:none;max-width:240px;pointer-events:none;}
 #debugInfo.show{display:block;}
 </style>
 </head>
@@ -152,923 +68,527 @@ input[type=range]::-moz-range-thumb{
   <canvas id="overlay"></canvas>
   <div id="statusBadge">Ready
 Press START CAMERA</div>
-
   <button id="camPanelToggle">⚙️ CAMERA</button>
-
   <div id="metricsPanel">
     <div class="metric-row"><span class="metric-label">FRAMES</span><span class="metric-value" id="mFrames">0</span></div>
     <div class="metric-row"><span class="metric-label">ANGLE</span><span class="metric-value" id="mAngle">--</span></div>
     <div class="metric-row"><span class="metric-label">DIRECTION</span><span class="metric-value" id="mDir">--</span></div>
     <div class="metric-row"><span class="metric-label">SHUTTER</span><span class="metric-value" id="mShutter">--</span></div>
   </div>
-
-  <!-- Camera controls panel -->
   <div id="camPanel">
     <div class="cam-title">📷 Camera Controls</div>
-
     <div class="slider-row">
       <span class="slider-label">SHUTTER<span id="capShutter" class="cap-badge cap-no">N/A</span></span>
       <input type="range" id="slShutter" min="100" max="33333" step="100" value="500">
       <span class="slider-val" id="valShutter">1/2000</span>
     </div>
-
     <div class="slider-row">
       <span class="slider-label">ISO<span id="capISO" class="cap-badge cap-no">N/A</span></span>
       <input type="range" id="slISO" min="50" max="3200" step="50" value="100">
       <span class="slider-val" id="valISO">100</span>
     </div>
-
     <div class="slider-row">
       <span class="slider-label">EV COMP<span id="capEV" class="cap-badge cap-no">N/A</span></span>
       <input type="range" id="slEV" min="-3" max="0" step="0.5" value="-2">
       <span class="slider-val" id="valEV">-2.0</span>
     </div>
-
     <div class="cam-hint" id="camHint">Detecting camera capabilities…</div>
   </div>
-
-  <!-- Debug info overlay -->
   <div id="debugInfo"></div>
-
-  <button class="btn-primary"   id="btnStartCamera">START CAMERA</button>
-  <button class="btn-secondary" id="btnCaptureRef"   disabled>CAPTURE REFERENCE</button>
-  <button class="btn-secondary" id="btnStartTracking"disabled>START TRACKING</button>
-  <button class="btn-secondary" id="btnReset"        disabled>RESET</button>
-  <button class="btn-secondary" id="btnDebug"        disabled>🔬 DEBUG OFF</button>
+  <button class="btn-primary" id="btnStartCamera">START CAMERA</button>
+  <button class="btn-secondary" id="btnCaptureRef" disabled>CAPTURE REFERENCE</button>
+  <button class="btn-secondary" id="btnStartTracking" disabled>START TRACKING</button>
+  <button class="btn-secondary" id="btnReset" disabled>RESET</button>
+  <button class="btn-secondary" id="btnDebug" disabled>🔬 DEBUG OFF</button>
 </div>
-
 <script>
-/* =====================================================================
-   CONFIG
-   ===================================================================== */
-// Detection
-const DIFF_THR          = 15;    // frame-diff threshold — 15 good for webcam
-const MIN_BLOB_PX       = 3;     // grid cells; 3×STEP(3)=9px min — catches distant ball
-const MAX_BLOB_PX       = 40000;
-const MIN_RADIUS_PX     = 5;
-const MAX_RADIUS_PX     = 200;
-const STEP              = 3;     // sampling grid step (px)
-const RADIUS_TOLERANCE  = 0.45;  // size-lock tolerance — wider for perspective change
-const ROI_TRACKING      = 150;
-const ROI_SEARCHING     = 300;
-const MAX_MISSED_FRAMES = 4;     // extra forgiveness for fast ball
-const USE_RAW_DETECTION = true;
+// ── CONFIG ──
+const DIFF_THR=15,MIN_BLOB_PX=3,MAX_BLOB_PX=40000,MIN_RADIUS_PX=5,MAX_RADIUS_PX=200,STEP=3;
+const RADIUS_TOLERANCE=0.45,ROI_TRACKING=150,ROI_SEARCHING=300,MAX_MISSED_FRAMES=4;
+const USE_RAW_DETECTION=true;
+const WHITE_BRIGHTNESS_MIN=145,WHITE_CHROMA_MAX=65;
+const NCC_WARMUP_FRAMES=0,NCC_THRESHOLD=0.50;
+const USE_VERTICAL_STRIP=true,STRIP_WIDTH_PERCENT=0.45,BOX_SIZE=200;
+// CONE
+const CONE_HALF_DEG=20;
+const CONE_HALF_RAD=CONE_HALF_DEG*Math.PI/180;
 
-// White pixel — webcam-friendly thresholds
-const WHITE_BRIGHTNESS_MIN = 145;
-const WHITE_CHROMA_MAX     = 65;
+const video=document.getElementById('video');
+const overlay=document.getElementById('overlay');
+const ctx=overlay.getContext('2d',{willReadFrequently:true});
+const btnStartCamera=document.getElementById('btnStartCamera');
+const btnCaptureRef=document.getElementById('btnCaptureRef');
+const btnStartTracking=document.getElementById('btnStartTracking');
+const btnReset=document.getElementById('btnReset');
+const btnDebug=document.getElementById('btnDebug');
+const statusBadge=document.getElementById('statusBadge');
+const metricsPanel=document.getElementById('metricsPanel');
+const camPanel=document.getElementById('camPanel');
+const debugInfoEl=document.getElementById('debugInfo');
+const slShutter=document.getElementById('slShutter');
+const slISO=document.getElementById('slISO');
+const slEV=document.getElementById('slEV');
+const valShutter=document.getElementById('valShutter');
+const valISO=document.getElementById('valISO');
+const valEV=document.getElementById('valEV');
+const capShutter=document.getElementById('capShutter');
+const capISO=document.getElementById('capISO');
+const capEV=document.getElementById('capEV');
+const camHint=document.getElementById('camHint');
 
-// Fast-ball: disable NCC template check for first N frames
-// (ball at speed looks nothing like the static template)
-const NCC_WARMUP_FRAMES = 0;     // disable NCC entirely for fast shots
-const NCC_THRESHOLD     = 0.50;
+let stream=null,referenceFrame=null,tracking=false,capturedFrames=[];
+let detectionBox=null,kalmanFilter=null,lastKnownPosition=null;
+let lockedRadius=null,ballTemplate=null,missedFrames=0,trackingLoopId=null;
+let lastCaptureTime=0,framesSinceFirstDetect=0,debugMode=false;
+let lastDebugBlobs=[],lastDebugGrid=null,coneOrigin=null;
 
-// Strip
-const USE_VERTICAL_STRIP    = true;
-const STRIP_WIDTH_PERCENT   = 0.45; // widened for fast ball that may drift off-centre
-const BOX_SIZE              = 200;
+const offscreen=document.createElement('canvas');
+const offscreenCtx=offscreen.getContext('2d',{willReadFrequently:true});
 
-/* ===================================================================== */
-
-const video   = document.getElementById('video');
-const overlay = document.getElementById('overlay');
-const ctx     = overlay.getContext('2d', {willReadFrequently:true});
-
-const btnStartCamera   = document.getElementById('btnStartCamera');
-const btnCaptureRef    = document.getElementById('btnCaptureRef');
-const btnStartTracking = document.getElementById('btnStartTracking');
-const btnReset         = document.getElementById('btnReset');
-const btnDebug         = document.getElementById('btnDebug');
-const statusBadge      = document.getElementById('statusBadge');
-const metricsPanel     = document.getElementById('metricsPanel');
-const camPanel         = document.getElementById('camPanel');
-const debugInfoEl      = document.getElementById('debugInfo');
-
-/* ── SLIDERS ── */
-const slShutter = document.getElementById('slShutter');
-const slISO     = document.getElementById('slISO');
-const slEV      = document.getElementById('slEV');
-const valShutter= document.getElementById('valShutter');
-const valISO    = document.getElementById('valISO');
-const valEV     = document.getElementById('valEV');
-const capShutter= document.getElementById('capShutter');
-const capISO    = document.getElementById('capISO');
-const capEV     = document.getElementById('capEV');
-const camHint   = document.getElementById('camHint');
-
-/* ── STATE ── */
-let stream = null;
-let referenceFrame = null;
-let tracking = false;
-let capturedFrames = [];
-let detectionBox = null;
-let kalmanFilter = null;
-let lastKnownPosition = null;
-let lockedRadius = null;
-let ballTemplate = null;
-let missedFrames = 0;
-let trackingLoopId = null;
-let lastCaptureTime = 0;
-let framesSinceFirstDetect = 0;
-let debugMode = false;
-let lastDebugBlobs = [];   // for debug overlay
-let lastDebugGrid = null;  // {grid, xMin, yMin, gridW, gridH} for debug pixel viz
-
-/* ── OFFSCREEN ── */
-const offscreen    = document.createElement('canvas');
-const offscreenCtx = offscreen.getContext('2d', {willReadFrequently:true});
-
-/* =====================================================================
-   HELPERS
-   ===================================================================== */
-function showToast(msg, dur=3000) {
-  const old = document.querySelector('.toast');
-  if (old) old.remove();
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), dur);
+// ── HELPERS ──
+function showToast(msg,dur=3000){const old=document.querySelector('.toast');if(old)old.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),dur);}
+function setStatus(txt){statusBadge.textContent=txt;}
+function updateMetrics(frames,angle,dir,shutterUs){
+  document.getElementById('mFrames').textContent=frames;
+  document.getElementById('mAngle').textContent=angle!=null?angle.toFixed(1)+'°':'--';
+  document.getElementById('mDir').textContent=dir||'--';
+  if(shutterUs!=null)document.getElementById('mShutter').textContent=shutterUs<1000?shutterUs+'µs':'1/'+Math.round(1e6/shutterUs)+'s';
 }
-function setStatus(txt) { statusBadge.textContent = txt; }
-function updateMetrics(frames, angle, dir, shutterUs) {
-  document.getElementById('mFrames').textContent = frames;
-  document.getElementById('mAngle').textContent  = angle != null ? angle.toFixed(1)+'°' : '--';
-  document.getElementById('mDir').textContent    = dir || '--';
-  if (shutterUs != null) {
-    document.getElementById('mShutter').textContent = shutterUs < 1000
-      ? shutterUs+'µs' : '1/'+ Math.round(1e6/shutterUs)+'s';
+function isWhitePixel(r,g,b){const lum=(r+g+b)/3;if(lum<WHITE_BRIGHTNESS_MIN)return false;return Math.max(r,g,b)-Math.min(r,g,b)<WHITE_CHROMA_MAX;}
+function grabFrame(){offscreenCtx.drawImage(video,0,0);return offscreenCtx.getImageData(0,0,offscreen.width,offscreen.height);}
+
+// ── CONE ──
+// Returns the apex in VIDEO pixel coords: coneOrigin once tracking starts,
+// otherwise the centre of the detection box (so the cone is visible before the shot).
+function getConeApex(){
+  if(coneOrigin) return coneOrigin;
+  // Fall back to detection box centre in video coords
+  if(detectionBox&&video.videoWidth){
+    const br=getDetectionBoxRect();
+    return{x:br.x+br.width/2, y:br.y+br.height/2};
   }
+  // Last resort: frame centre
+  return{x:(video.videoWidth||640)/2, y:(video.videoHeight||480)/2};
 }
-function isWhitePixel(r,g,b) {
-  const lum = (r+g+b)/3;
-  if (lum < WHITE_BRIGHTNESS_MIN) return false;
-  return Math.max(r,g,b) - Math.min(r,g,b) < WHITE_CHROMA_MAX;
+function getForwardVec(){
+  // landscape: ball goes rightward (+x); portrait: ball goes upward (-y in pixel space)
+  return window.innerWidth>=window.innerHeight?{fx:1,fy:0}:{fx:0,fy:-1};
 }
-function grabFrame() {
-  offscreenCtx.drawImage(video, 0, 0);
-  return offscreenCtx.getImageData(0, 0, offscreen.width, offscreen.height);
-}
-function checkBrightness(frame) {
-  let sum=0, count=0;
-  for (let i=0; i<frame.data.length; i+=4*8) { sum+=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3; count++; }
-  return count>0 ? sum/count : 0;
+function isInsideCone(cx,cy){
+  if(!coneOrigin)return true;
+  const isLandscape=window.innerWidth>=window.innerHeight;
+  const fwdAngle=isLandscape?0:-Math.PI/2;
+  const br=getDetectionBoxRect();
+  // Half-width of the box = starting half-width of the trapezoid
+  const halfBase=isLandscape?br.height/2:br.width/2;
+  // Project onto forward and perp axes from coneOrigin
+  const dx=cx-coneOrigin.x, dy=cy-coneOrigin.y;
+  const fwd=dx*Math.cos(fwdAngle)+dy*Math.sin(fwdAngle);
+  const side=Math.abs(dx*(-Math.sin(fwdAngle))+dy*Math.cos(fwdAngle));
+  if(fwd<0)return false;
+  return side<=halfBase+fwd*Math.tan(CONE_HALF_RAD);
 }
 
-/* =====================================================================
-   SHUTTER / ISO / EV — ImageCapture API + applyConstraints
-   ===================================================================== */
-let imageCapturer = null;
-let cameraCapabilities = {};
-
-async function initCameraControls(track) {
-  // Get capabilities
-  const caps = track.getCapabilities ? track.getCapabilities() : {};
-  cameraCapabilities = caps;
-
-  // Try to build ImageCapture for direct shutter/ISO control
-  if (typeof ImageCapture !== 'undefined') {
-    try { imageCapturer = new ImageCapture(track); } catch(e) { imageCapturer = null; }
-  }
-
-  // ── Shutter ──
-  const hasShutter = !!(caps.exposureTime);
-  capShutter.textContent = hasShutter ? 'OK' : 'N/A';
-  capShutter.className   = 'cap-badge ' + (hasShutter ? 'cap-yes' : 'cap-no');
-  if (hasShutter) {
-    const min = caps.exposureTime.min ?? 100;
-    const max = caps.exposureTime.max ?? 33333;
-    slShutter.min   = min;
-    slShutter.max   = max;
-    slShutter.value = Math.min(500, max);   // default 1/2000s
-    slShutter.disabled = false;
-    updateShutterLabel(slShutter.value);
-  } else {
-    slShutter.disabled = true;
-  }
-
-  // ── ISO ──
-  const hasISO = !!(caps.iso);
-  capISO.textContent = hasISO ? 'OK' : 'N/A';
-  capISO.className   = 'cap-badge ' + (hasISO ? 'cap-yes' : 'cap-no');
-  if (hasISO) {
-    slISO.min   = caps.iso.min ?? 50;
-    slISO.max   = caps.iso.max ?? 3200;
-    slISO.value = Math.max(slISO.min, Math.min(400, slISO.max));
-    slISO.disabled = false;
-    valISO.textContent = slISO.value;
-  } else {
-    slISO.disabled = true;
-  }
-
-  // ── EV ──
-  const hasEV = !!(caps.exposureCompensation);
-  capEV.textContent = hasEV ? 'OK' : 'N/A';
-  capEV.className   = 'cap-badge ' + (hasEV ? 'cap-yes' : 'cap-no');
-  if (hasEV) {
-    slEV.min   = caps.exposureCompensation.min ?? -3;
-    slEV.max   = caps.exposureCompensation.max ?? 0;
-    slEV.value = Math.max(slEV.min, -2);
-    slEV.disabled = false;
-    valEV.textContent = parseFloat(slEV.value).toFixed(1);
-  } else {
-    slEV.disabled = true;
-  }
-
-  // Build hint
-  const supported = [hasShutter&&'Shutter', hasISO&&'ISO', hasEV&&'EV'].filter(Boolean);
-  if (supported.length === 0) {
-    camHint.textContent = '⚠️ This webcam/browser doesn\'t expose manual controls. Use good bright lighting and a dark background behind the ball.';
-  } else {
-    camHint.textContent = `✅ Supported: ${supported.join(', ')}. Set shutter as fast as possible (low µs value) to freeze the ball.`;
-  }
-
-  // Auto-apply fast shutter immediately
+// ── CAMERA CONTROLS ──
+let imageCapturer=null,cameraCapabilities={};
+async function initCameraControls(track){
+  const caps=track.getCapabilities?track.getCapabilities():{};
+  cameraCapabilities=caps;
+  if(typeof ImageCapture!=='undefined'){try{imageCapturer=new ImageCapture(track);}catch(e){imageCapturer=null;}}
+  const hasShutter=!!(caps.exposureTime);
+  capShutter.textContent=hasShutter?'OK':'N/A';capShutter.className='cap-badge '+(hasShutter?'cap-yes':'cap-no');
+  if(hasShutter){slShutter.min=caps.exposureTime.min??100;slShutter.max=caps.exposureTime.max??33333;slShutter.value=Math.min(500,slShutter.max);slShutter.disabled=false;updateShutterLabel(slShutter.value);}else{slShutter.disabled=true;}
+  const hasISO=!!(caps.iso);
+  capISO.textContent=hasISO?'OK':'N/A';capISO.className='cap-badge '+(hasISO?'cap-yes':'cap-no');
+  if(hasISO){slISO.min=caps.iso.min??50;slISO.max=caps.iso.max??3200;slISO.value=Math.max(slISO.min,Math.min(400,slISO.max));slISO.disabled=false;valISO.textContent=slISO.value;}else{slISO.disabled=true;}
+  const hasEV=!!(caps.exposureCompensation);
+  capEV.textContent=hasEV?'OK':'N/A';capEV.className='cap-badge '+(hasEV?'cap-yes':'cap-no');
+  if(hasEV){slEV.min=caps.exposureCompensation.min??-3;slEV.max=caps.exposureCompensation.max??0;slEV.value=Math.max(slEV.min,-2);slEV.disabled=false;valEV.textContent=parseFloat(slEV.value).toFixed(1);}else{slEV.disabled=true;}
+  const supported=[hasShutter&&'Shutter',hasISO&&'ISO',hasEV&&'EV'].filter(Boolean);
+  camHint.textContent=supported.length===0?'⚠️ No manual controls. Use bright lighting and dark background.':'✅ Supported: '+supported.join(', ')+'. Set shutter as fast as possible.';
   await applyFastShutter(track);
 }
+function updateShutterLabel(us){us=parseInt(us);valShutter.textContent=us<1000?us+'µs':'1/'+Math.round(1e6/us)+'s';}
+async function applyFastShutter(track){
+  if(!track)return;const caps=cameraCapabilities;const constraints={advanced:[{}]};let applied=false;
+  if(caps.exposureMode&&caps.exposureMode.includes('manual')&&caps.exposureTime){const minET=caps.exposureTime.min??100;const maxET=caps.exposureTime.max??33333;constraints.advanced[0].exposureMode='manual';constraints.advanced[0].exposureTime=Math.max(minET,Math.min(500,maxET));applied=true;}
+  if(caps.exposureCompensation){const cap=caps.exposureCompensation;constraints.advanced[0].exposureCompensation=Math.max(cap.min??-3,Math.min(cap.max??0,-2.5));applied=true;}
+  if(applied){try{await track.applyConstraints(constraints);const s=track.getSettings?track.getSettings():{};if(s.exposureTime){slShutter.value=s.exposureTime;updateShutterLabel(s.exposureTime);document.getElementById('mShutter').textContent=valShutter.textContent;}if(s.exposureCompensation!==undefined){slEV.value=s.exposureCompensation;valEV.textContent=parseFloat(s.exposureCompensation).toFixed(1);}}catch(e){console.warn('Fast shutter failed:',e);}}
+}
+async function applySliderConstraints(){
+  const track=video.srcObject?.getVideoTracks()[0];if(!track)return;
+  const caps=cameraCapabilities,adv={};
+  if(caps.exposureTime&&!slShutter.disabled){adv.exposureMode='manual';adv.exposureTime=parseInt(slShutter.value);}
+  if(caps.iso&&!slISO.disabled)adv.iso=parseInt(slISO.value);
+  if(caps.exposureCompensation&&!slEV.disabled)adv.exposureCompensation=parseFloat(slEV.value);
+  if(Object.keys(adv).length===0)return;
+  try{await track.applyConstraints({advanced:[adv]});}catch(e){console.warn('Constraint failed:',e);}
+}
+slShutter.addEventListener('input',()=>{updateShutterLabel(slShutter.value);applySliderConstraints();});
+slISO.addEventListener('input',()=>{valISO.textContent=slISO.value;applySliderConstraints();});
+slEV.addEventListener('input',()=>{valEV.textContent=parseFloat(slEV.value).toFixed(1);applySliderConstraints();});
 
-function updateShutterLabel(us) {
-  us = parseInt(us);
-  valShutter.textContent = us < 1000 ? us+'µs' : '1/'+Math.round(1e6/us)+'s';
+// ── KALMAN ──
+class KalmanFilter{
+  constructor(){this.x=0;this.y=0;this.vx=0;this.vy=0;this.initialized=false;this.processNoise=0.8;this.measurementNoise=12;this.lastUpdateTime=0;}
+  init(x,y){this.x=x;this.y=y;this.vx=0;this.vy=0;this.initialized=true;this.lastUpdateTime=performance.now();}
+  predict(){if(!this.initialized)return null;const dt=Math.min((performance.now()-this.lastUpdateTime)/1000,0.1);this.x+=this.vx*dt;this.y+=this.vy*dt;return{x:this.x,y:this.y};}
+  update(m){if(!this.initialized){this.init(m.x,m.y);return{x:this.x,y:this.y};}const dt=Math.max((performance.now()-this.lastUpdateTime)/1000,0.001);this.lastUpdateTime=performance.now();const k=this.measurementNoise/(this.measurementNoise+this.processNoise);this.vx=(1-0.7)*this.vx+0.7*(m.x-this.x)/dt;this.vy=(1-0.7)*this.vy+0.7*(m.y-this.y)/dt;this.x+=k*(m.x-this.x);this.y+=k*(m.y-this.y);return{x:this.x,y:this.y};}
 }
 
-async function applyFastShutter(track) {
-  if (!track) return;
-  const caps = cameraCapabilities;
-  const constraints = { advanced: [{}] };
-  let applied = false;
-
-  // First try: manual exposure mode + exposureTime
-  if (caps.exposureMode && caps.exposureMode.includes('manual') && caps.exposureTime) {
-    const minET = caps.exposureTime.min ?? 100;
-    const maxET = caps.exposureTime.max ?? 33333;
-    const target = Math.min(500, maxET); // 1/2000s default
-    constraints.advanced[0].exposureMode = 'manual';
-    constraints.advanced[0].exposureTime = Math.max(minET, target);
-    applied = true;
-  }
-  // Second try: EV compensation (less precise but widely supported)
-  if (caps.exposureCompensation) {
-    const cap = caps.exposureCompensation;
-    constraints.advanced[0].exposureCompensation = Math.max(cap.min ?? -3, Math.min(cap.max ?? 0, -2.5));
-    applied = true;
-  }
-
-  if (applied) {
-    try {
-      await track.applyConstraints(constraints);
-      // Sync slider
-      const s = track.getSettings ? track.getSettings() : {};
-      if (s.exposureTime) {
-        slShutter.value = s.exposureTime;
-        updateShutterLabel(s.exposureTime);
-        document.getElementById('mShutter').textContent = valShutter.textContent;
-      }
-      if (s.exposureCompensation !== undefined) {
-        slEV.value = s.exposureCompensation;
-        valEV.textContent = parseFloat(s.exposureCompensation).toFixed(1);
-      }
-    } catch(e) { console.warn('Auto fast shutter failed:', e); }
-  }
-}
-
-async function applySliderConstraints() {
-  const track = video.srcObject?.getVideoTracks()[0];
-  if (!track) return;
-  const caps = cameraCapabilities;
-  const adv = {};
-  if (caps.exposureTime && !slShutter.disabled) {
-    adv.exposureMode = 'manual';
-    adv.exposureTime = parseInt(slShutter.value);
-  }
-  if (caps.iso && !slISO.disabled) adv.iso = parseInt(slISO.value);
-  if (caps.exposureCompensation && !slEV.disabled) adv.exposureCompensation = parseFloat(slEV.value);
-  if (Object.keys(adv).length === 0) return;
-  try { await track.applyConstraints({ advanced: [adv] }); }
-  catch(e) { console.warn('Constraint apply failed:', e); }
-}
-
-slShutter.addEventListener('input', () => { updateShutterLabel(slShutter.value); applySliderConstraints(); });
-slISO.addEventListener('input',     () => { valISO.textContent = slISO.value;    applySliderConstraints(); });
-slEV.addEventListener('input',      () => { valEV.textContent  = parseFloat(slEV.value).toFixed(1); applySliderConstraints(); });
-
-/* =====================================================================
-   KALMAN FILTER
-   ===================================================================== */
-class KalmanFilter {
-  constructor() {
-    this.x=0;this.y=0;this.vx=0;this.vy=0;
-    this.initialized=false;this.processNoise=0.8;this.measurementNoise=12;
-    this.lastUpdateTime=0;
-  }
-  init(x,y){ this.x=x;this.y=y;this.vx=0;this.vy=0;this.initialized=true;this.lastUpdateTime=performance.now(); }
-  predict(){
-    if(!this.initialized)return null;
-    const dt=Math.min((performance.now()-this.lastUpdateTime)/1000,0.1);
-    this.x+=this.vx*dt; this.y+=this.vy*dt;
-    return{x:this.x,y:this.y};
-  }
-  update(m){
-    if(!this.initialized){this.init(m.x,m.y);return{x:this.x,y:this.y};}
-    const dt=Math.max((performance.now()-this.lastUpdateTime)/1000,0.001);
-    this.lastUpdateTime=performance.now();
-    const k=this.measurementNoise/(this.measurementNoise+this.processNoise);
-    this.vx=(1-0.7)*this.vx+0.7*(m.x-this.x)/dt;
-    this.vy=(1-0.7)*this.vy+0.7*(m.y-this.y)/dt;
-    this.x+=k*(m.x-this.x); this.y+=k*(m.y-this.y);
-    return{x:this.x,y:this.y};
-  }
-}
-
-/* =====================================================================
-   CAMERA START
-   ===================================================================== */
-async function startCamera() {
-  try {
-    const tmp = await navigator.mediaDevices.getUserMedia({video:true});
-    tmp.getTracks().forEach(t=>t.stop());
-
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const cams    = devices.filter(d=>d.kind==='videoinput');
-    const usb     = cams.find(d=>/usb|uvc|capture|hdmi|elgato|avermedia|cam link/i.test(d.label));
-    const back    = cams.find(d=>/back|rear|environment/i.test(d.label));
-
+// ── CAMERA START ──
+async function startCamera(){
+  try{
+    const tmp=await navigator.mediaDevices.getUserMedia({video:true});tmp.getTracks().forEach(t=>t.stop());
+    const devices=await navigator.mediaDevices.enumerateDevices();const cams=devices.filter(d=>d.kind==='videoinput');
+    const usb=cams.find(d=>/usb|uvc|capture|hdmi|elgato|avermedia|cam link/i.test(d.label));
+    const back=cams.find(d=>/back|rear|environment/i.test(d.label));
     let constraints;
-    if (usb)  constraints={video:{deviceId:{exact:usb.deviceId},  width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
-    else if(back) constraints={video:{deviceId:{exact:back.deviceId},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
-    else      constraints={video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
-
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
-    video.srcObject = stream;
-    await video.play();
-
-    const track = stream.getVideoTracks()[0];
-    const settings = track.getSettings();
-    const fps = settings.frameRate || '?';
-
-    const applyDimensions = () => {
-      if (!video.videoWidth||!video.videoHeight) return;
-      offscreen.width  = video.videoWidth;
-      offscreen.height = video.videoHeight;
-      const dpr = window.devicePixelRatio||1;
-      overlay.width  = Math.round(window.innerWidth*dpr);
-      overlay.height = Math.round(window.innerHeight*dpr);
-      overlay.style.width  = window.innerWidth+'px';
-      overlay.style.height = window.innerHeight+'px';
-    };
-    if (video.videoWidth&&video.videoHeight) applyDimensions();
-    else video.addEventListener('loadedmetadata', applyDimensions, {once:true});
-
-    // Wait a moment then set up camera controls
-    await new Promise(r=>setTimeout(r,600));
-    await initCameraControls(track);
-
-    document.getElementById('camPanelToggle').classList.add('show');
-    btnStartCamera.disabled  = true;
-    btnCaptureRef.disabled   = false;
-    btnDebug.disabled        = false;
-    setStatus(`Camera Active\n${video.videoWidth}×${video.videoHeight} @${fps}fps\nReady to capture`);
-    showToast(`📷 Camera started — ${fps}fps`);
-
-  } catch(e) {
-    console.error(e);
-    showToast('❌ Failed to access camera');
-    setStatus('Camera Error');
-  }
+    if(usb)constraints={video:{deviceId:{exact:usb.deviceId},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
+    else if(back)constraints={video:{deviceId:{exact:back.deviceId},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
+    else constraints={video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:60}}};
+    stream=await navigator.mediaDevices.getUserMedia(constraints);video.srcObject=stream;await video.play();
+    const track=stream.getVideoTracks()[0];const settings=track.getSettings();const fps=settings.frameRate||'?';
+    const applyDimensions=()=>{if(!video.videoWidth||!video.videoHeight)return;offscreen.width=video.videoWidth;offscreen.height=video.videoHeight;const dpr=window.devicePixelRatio||1;overlay.width=Math.round(window.innerWidth*dpr);overlay.height=Math.round(window.innerHeight*dpr);overlay.style.width=window.innerWidth+'px';overlay.style.height=window.innerHeight+'px';};
+    if(video.videoWidth&&video.videoHeight)applyDimensions();else video.addEventListener('loadedmetadata',applyDimensions,{once:true});
+    await new Promise(r=>setTimeout(r,600));await initCameraControls(track);
+    document.getElementById('camPanelToggle').classList.add('show');btnStartCamera.disabled=true;btnCaptureRef.disabled=false;btnDebug.disabled=false;
+    setStatus(`Camera Active\n${video.videoWidth}x${video.videoHeight} @${fps}fps\nReady to capture`);showToast(`📷 Camera started — ${fps}fps`);
+  }catch(e){console.error(e);showToast('❌ Failed to access camera');setStatus('Camera Error');}
 }
 
-/* =====================================================================
-   DETECTION BOX
-   ===================================================================== */
-function createDetectionBox() {
-  const old = document.querySelector('.detection-box');
-  if (old) old.remove();
-  const box = document.createElement('div');
-  box.className = 'detection-box';
-  box.style.cssText = `width:${BOX_SIZE}px;height:${BOX_SIZE}px;left:50%;top:50%;transform:translate(-50%,-50%)`;
-  const lbl = document.createElement('div');
-  lbl.className='box-label'; lbl.textContent='BALL AREA';
-  box.appendChild(lbl);
-  document.getElementById('wrap').appendChild(box);
-  detectionBox = box;
+// ── DETECTION BOX ──
+function createDetectionBox(){
+  const old=document.querySelector('.detection-box');if(old)old.remove();
+  const box=document.createElement('div');box.className='detection-box';
+  box.style.cssText=`width:${BOX_SIZE}px;height:${BOX_SIZE}px;left:50%;top:50%;transform:translate(-50%,-50%)`;
+  const lbl=document.createElement('div');lbl.className='box-label';lbl.textContent='BALL AREA';
+  box.appendChild(lbl);document.getElementById('wrap').appendChild(box);detectionBox=box;
 }
 
-/* =====================================================================
-   COORDINATE MAPPING  (video pixels ↔ screen pixels)
-   object-fit:cover crops the video centre — we must apply the same
-   transform when drawing on the canvas so circles land on the ball.
-   ===================================================================== */
-function getCoverTransform() {
-  const vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw||!vh) return null;
-  const dpr = window.devicePixelRatio||1;
-  const sw  = window.innerWidth*dpr, sh = window.innerHeight*dpr;
-  const va  = vw/vh, sa = sw/sh;
-  let scale, cropX, cropY;
-  if (va > sa) { scale=sh/vh; cropX=(vw*scale-sw)/2; cropY=0; }
-  else         { scale=sw/vw; cropX=0; cropY=(vh*scale-sh)/2; }
-  return {scale, cropX, cropY};
+// ── COORD MAPPING ──
+function getCoverTransform(){
+  const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh)return null;
+  const dpr=window.devicePixelRatio||1;const sw=window.innerWidth*dpr,sh=window.innerHeight*dpr;
+  const va=vw/vh,sa=sw/sh;let scale,cropX,cropY;
+  if(va>sa){scale=sh/vh;cropX=(vw*scale-sw)/2;cropY=0;}else{scale=sw/vw;cropX=0;cropY=(vh*scale-sh)/2;}
+  return{scale,cropX,cropY};
 }
-
-// Screen coords (CSS px) → video pixel coords
-function screenToVideo(sx, sy) {
-  const vw=video.videoWidth, vh=video.videoHeight;
-  if (!vw||!vh) return {x:sx,y:sy};
-  const elR=video.getBoundingClientRect();
-  const va=vw/vh, ea=elR.width/elR.height;
+function screenToVideo(sx,sy){
+  const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh)return{x:sx,y:sy};
+  const elR=video.getBoundingClientRect();const va=vw/vh,ea=elR.width/elR.height;
   let scale,cropX,cropY;
-  if (va>ea) { scale=elR.height/vh; cropX=(vw*scale-elR.width)/2; cropY=0; }
-  else       { scale=elR.width/vw;  cropX=0; cropY=(vh*scale-elR.height)/2; }
-  return { x:(sx+cropX)/scale, y:(sy+cropY)/scale };
+  if(va>ea){scale=elR.height/vh;cropX=(vw*scale-elR.width)/2;cropY=0;}else{scale=elR.width/vw;cropX=0;cropY=(vh*scale-elR.height)/2;}
+  return{x:(sx+cropX)/scale,y:(sy+cropY)/scale};
+}
+function getDetectionBoxRect(){
+  if(!video.videoWidth||!video.videoHeight)return{x:0,y:0,width:100,height:100};
+  const elR=video.getBoundingClientRect(),bR=detectionBox.getBoundingClientRect();
+  const tl=screenToVideo(bR.left-elR.left,bR.top-elR.top);const br=screenToVideo(bR.left-elR.left+bR.width,bR.top-elR.top+bR.height);
+  return{x:tl.x,y:tl.y,width:br.x-tl.x,height:br.y-tl.y};
 }
 
-function getDetectionBoxRect() {
-  if (!video.videoWidth||!video.videoHeight) return {x:0,y:0,width:100,height:100};
-  const elR=video.getBoundingClientRect(), bR=detectionBox.getBoundingClientRect();
-  const tl=screenToVideo(bR.left-elR.left, bR.top-elR.top);
-  const br=screenToVideo(bR.left-elR.left+bR.width, bR.top-elR.top+bR.height);
-  return {x:tl.x, y:tl.y, width:br.x-tl.x, height:br.y-tl.y};
+// ── SIZE LOCK ──
+function passesSizeLock(r){if(lockedRadius===null)return true;return Math.abs(r-lockedRadius)/lockedRadius<=RADIUS_TOLERANCE;}
+
+// ── NCC ──
+function buildTemplate(frame,cx,cy,radius){
+  const side=Math.max(7,Math.round(radius*2)|1),half=Math.floor(side/2);const w=frame.width,patch=new Float32Array(side*side);let sum=0;
+  for(let dy=-half;dy<=half;dy++)for(let dx=-half;dx<=half;dx++){const px=Math.round(cx)+dx,py=Math.round(cy)+dy;if(px<0||px>=w||py<0||py>=frame.height)continue;const i=(py*w+px)*4,lum=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3;patch[(dy+half)*side+(dx+half)]=lum;sum+=lum;}
+  const mean=sum/patch.length;let norm=0;for(let i=0;i<patch.length;i++){patch[i]-=mean;norm+=patch[i]*patch[i];}norm=Math.sqrt(norm)||1;for(let i=0;i<patch.length;i++)patch[i]/=norm;return{patch,side};
+}
+function nccScore(frame,cx,cy){
+  if(!ballTemplate||framesSinceFirstDetect<NCC_WARMUP_FRAMES)return 1;
+  const{patch,side}=ballTemplate,half=Math.floor(side/2),w=frame.width;const cand=new Float32Array(side*side);let sum=0;
+  for(let dy=-half;dy<=half;dy++)for(let dx=-half;dx<=half;dx++){const px=Math.round(cx)+dx,py=Math.round(cy)+dy;if(px<0||px>=w||py<0||py>=frame.height)continue;const i=(py*w+px)*4,lum=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3;cand[(dy+half)*side+(dx+half)]=lum;sum+=lum;}
+  const mean=sum/cand.length;let norm=0;for(let i=0;i<cand.length;i++){cand[i]-=mean;norm+=cand[i]*cand[i];}norm=Math.sqrt(norm)||1;let dot=0;for(let i=0;i<patch.length;i++)dot+=patch[i]*(cand[i]/norm);return dot;
 }
 
-/* =====================================================================
-   SIZE LOCK
-   ===================================================================== */
-function passesSizeLock(r) {
-  if (lockedRadius===null) return true;
-  return Math.abs(r-lockedRadius)/lockedRadius <= RADIUS_TOLERANCE;
+// ── FIND BALL ──
+// Computes the axis-aligned bounding box of the ±20° cone from apex out to
+// the frame edge, so the pixel scan is tight to the valid zone.
+function getConeROI(w,h){
+  const isLandscape=window.innerWidth>=window.innerHeight;
+  const fwdAngle=isLandscape?0:-Math.PI/2;
+  const coneLen=Math.sqrt(w*w+h*h)*1.1;
+  const ray1A=fwdAngle-CONE_HALF_RAD, ray2A=fwdAngle+CONE_HALF_RAD;
+  const br=getDetectionBoxRect();
+  let base1x,base1y,base2x,base2y;
+  if(isLandscape){base1x=br.x+br.width;base1y=br.y;base2x=br.x+br.width;base2y=br.y+br.height;}
+  else{base1x=br.x;base1y=br.y;base2x=br.x+br.width;base2y=br.y;}
+  const r1x=base1x+Math.cos(ray1A)*coneLen, r1y=base1y+Math.sin(ray1A)*coneLen;
+  const r2x=base2x+Math.cos(ray2A)*coneLen, r2y=base2y+Math.sin(ray2A)*coneLen;
+  const xs=[base1x,base2x,r1x,r2x], ys=[base1y,base2y,r1y,r2y];
+  return{
+    xMin:Math.max(0,Math.floor(Math.min(...xs))),
+    xMax:Math.min(w,Math.ceil(Math.max(...xs))),
+    yMin:Math.max(0,Math.floor(Math.min(...ys))),
+    yMax:Math.min(h,Math.ceil(Math.max(...ys)))
+  };
 }
 
-/* =====================================================================
-   TEMPLATE MATCHING (NCC)
-   ===================================================================== */
-function buildTemplate(frame, cx, cy, radius) {
-  const side=Math.max(7,Math.round(radius*2)|1), half=Math.floor(side/2);
-  const w=frame.width, patch=new Float32Array(side*side);
-  let sum=0;
-  for (let dy=-half;dy<=half;dy++) for (let dx=-half;dx<=half;dx++) {
-    const px=Math.round(cx)+dx, py=Math.round(cy)+dy;
-    if (px<0||px>=w||py<0||py>=frame.height) continue;
-    const i=(py*w+px)*4, lum=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3;
-    patch[(dy+half)*side+(dx+half)]=lum; sum+=lum;
-  }
-  const mean=sum/patch.length; let norm=0;
-  for(let i=0;i<patch.length;i++){patch[i]-=mean;norm+=patch[i]*patch[i];}
-  norm=Math.sqrt(norm)||1;
-  for(let i=0;i<patch.length;i++) patch[i]/=norm;
-  return {patch,side};
-}
-function nccScore(frame, cx, cy) {
-  if (!ballTemplate||framesSinceFirstDetect<NCC_WARMUP_FRAMES) return 1;
-  const {patch,side}=ballTemplate, half=Math.floor(side/2), w=frame.width;
-  const cand=new Float32Array(side*side); let sum=0;
-  for(let dy=-half;dy<=half;dy++) for(let dx=-half;dx<=half;dx++){
-    const px=Math.round(cx)+dx, py=Math.round(cy)+dy;
-    if(px<0||px>=w||py<0||py>=frame.height) continue;
-    const i=(py*w+px)*4,lum=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3;
-    cand[(dy+half)*side+(dx+half)]=lum; sum+=lum;
-  }
-  const mean=sum/cand.length; let norm=0;
-  for(let i=0;i<cand.length;i++){cand[i]-=mean;norm+=cand[i]*cand[i];}
-  norm=Math.sqrt(norm)||1;
-  let dot=0;
-  for(let i=0;i<patch.length;i++) dot+=patch[i]*(cand[i]/norm);
-  return dot;
-}
-
-/* =====================================================================
-   BALL DETECTION
-   ===================================================================== */
-function findBall(refFrame, curFrame, boxRect, searchFull=false) {
-  const w=curFrame.width, h=curFrame.height;
-  let xMin,xMax,yMin,yMax;
-
-  if (searchFull && USE_VERTICAL_STRIP) {
-    const isLandscape = window.innerWidth >= window.innerHeight;
-    if (isLandscape) {
-      const strip=Math.round(h*STRIP_WIDTH_PERCENT), cy=Math.round(h/2);
-      xMin=0; xMax=w;
-      yMin=Math.max(0,cy-Math.floor(strip/2));
-      yMax=Math.min(h,cy+Math.ceil(strip/2));
-    } else {
-      const strip=Math.round(w*STRIP_WIDTH_PERCENT), cx=Math.round(w/2);
-      xMin=Math.max(0,cx-Math.floor(strip/2));
-      xMax=Math.min(w,cx+Math.ceil(strip/2));
-      yMin=0; yMax=h;
-    }
-  } else if (searchFull && lastKnownPosition) {
+function findBall(refFrame,curFrame,boxRect,searchFull=false){
+  const w=curFrame.width,h=curFrame.height;let xMin,xMax,yMin,yMax;
+  if(searchFull&&coneOrigin){
+    // Once ball is in flight: tight ROI around last known position
     const R=missedFrames===0?ROI_TRACKING:ROI_SEARCHING;
     xMin=Math.max(0,Math.floor(lastKnownPosition.x-R));
     xMax=Math.min(w,Math.ceil(lastKnownPosition.x+R));
     yMin=Math.max(0,Math.floor(lastKnownPosition.y-R));
     yMax=Math.min(h,Math.ceil(lastKnownPosition.y+R));
-  } else if (searchFull) {
-    xMin=0;xMax=w;yMin=0;yMax=h;
-  } else {
-    xMin=Math.max(0,Math.floor(boxRect.x));
-    xMax=Math.min(w,Math.ceil(boxRect.x+boxRect.width));
-    yMin=Math.max(0,Math.floor(boxRect.y));
-    yMax=Math.min(h,Math.ceil(boxRect.y+boxRect.height));
+  }else if(searchFull){
+    // Before first detection: scan only the cone's bounding box
+    const roi=getConeROI(w,h);
+    xMin=roi.xMin;xMax=roi.xMax;yMin=roi.yMin;yMax=roi.yMax;
+  }else{
+    xMin=Math.max(0,Math.floor(boxRect.x));xMax=Math.min(w,Math.ceil(boxRect.x+boxRect.width));yMin=Math.max(0,Math.floor(boxRect.y));yMax=Math.min(h,Math.ceil(boxRect.y+boxRect.height));
   }
-
-  const gridW=Math.max(1,Math.floor((xMax-xMin)/STEP));
-  const gridH=Math.max(1,Math.floor((yMax-yMin)/STEP));
-  const grid=new Uint8Array(gridW*gridH);
-
+  const gridW=Math.max(1,Math.floor((xMax-xMin)/STEP));const gridH=Math.max(1,Math.floor((yMax-yMin)/STEP));const grid=new Uint8Array(gridW*gridH);
   let idx=0;
-  for(let gy=0;gy<gridH;gy++){
-    const absY=yMin+gy*STEP;
-    for(let gx=0;gx<gridW;gx++,idx++){
-      const absX=xMin+gx*STEP, fi=(absY*w+absX)*4;
-      const dr=Math.abs(curFrame.data[fi]  -refFrame.data[fi]);
-      const dg=Math.abs(curFrame.data[fi+1]-refFrame.data[fi+1]);
-      const db=Math.abs(curFrame.data[fi+2]-refFrame.data[fi+2]);
-      const avgDiff = (dr+dg+db)/3;
-      const r=curFrame.data[fi], g=curFrame.data[fi+1], b=curFrame.data[fi+2];
-      const lum=(r+g+b)/3;
-      // Mark if: big diff AND (bright enough to be ball OR very bright)
-      // Two-tier: strict white OR just very bright (handles webcam WB shift)
-      if (avgDiff > DIFF_THR && (isWhitePixel(r,g,b) || lum > 200))
-        grid[idx]=1;
-    }
-  }
-
-  // Save debug grid
-  if (debugMode) lastDebugGrid={grid,xMin,yMin,gridW,gridH};
-
-  const visited=new Uint8Array(gridW*gridH);
-  let best=null, bestScore=0;
-  const blobs=[];
-
+  for(let gy=0;gy<gridH;gy++){const absY=yMin+gy*STEP;for(let gx=0;gx<gridW;gx++,idx++){const absX=xMin+gx*STEP,fi=(absY*w+absX)*4;const dr=Math.abs(curFrame.data[fi]-refFrame.data[fi]),dg=Math.abs(curFrame.data[fi+1]-refFrame.data[fi+1]),db=Math.abs(curFrame.data[fi+2]-refFrame.data[fi+2]);const avgDiff=(dr+dg+db)/3;const r=curFrame.data[fi],g=curFrame.data[fi+1],b=curFrame.data[fi+2],lum=(r+g+b)/3;if(avgDiff>DIFF_THR&&(isWhitePixel(r,g,b)||lum>200))grid[idx]=1;}}
+  if(debugMode)lastDebugGrid={grid,xMin,yMin,gridW,gridH};
+  const visited=new Uint8Array(gridW*gridH);let best=null,bestScore=0;const blobs=[];
   for(let i=0;i<grid.length;i++){
-    if(!grid[i]||visited[i]) continue;
-    const q=[i]; visited[i]=1; const comp=[];
-    for(let qi=0;qi<q.length;qi++){
-      const c=q[qi]; comp.push(c);
-      const gx=c%gridW, gy=Math.floor(c/gridW);
-      const n1=c-1,n2=c+1,n3=c-gridW,n4=c+gridW;
-      if(gx>0&&grid[n1]&&!visited[n1]){visited[n1]=1;q.push(n1);}
-      if(gx<gridW-1&&grid[n2]&&!visited[n2]){visited[n2]=1;q.push(n2);}
-      if(gy>0&&grid[n3]&&!visited[n3]){visited[n3]=1;q.push(n3);}
-      if(gy<gridH-1&&grid[n4]&&!visited[n4]){visited[n4]=1;q.push(n4);}
-    }
-    if(comp.length<MIN_BLOB_PX||comp.length>MAX_BLOB_PX) continue;
-
+    if(!grid[i]||visited[i])continue;const q=[i];visited[i]=1;const comp=[];
+    for(let qi=0;qi<q.length;qi++){const c=q[qi];comp.push(c);const gx=c%gridW,gy=Math.floor(c/gridW);const n1=c-1,n2=c+1,n3=c-gridW,n4=c+gridW;if(gx>0&&grid[n1]&&!visited[n1]){visited[n1]=1;q.push(n1);}if(gx<gridW-1&&grid[n2]&&!visited[n2]){visited[n2]=1;q.push(n2);}if(gy>0&&grid[n3]&&!visited[n3]){visited[n3]=1;q.push(n3);}if(gy<gridH-1&&grid[n4]&&!visited[n4]){visited[n4]=1;q.push(n4);}}
+    if(comp.length<MIN_BLOB_PX||comp.length>MAX_BLOB_PX)continue;
     let sx=0,sy=0,mgx=Infinity,xgx=-Infinity,mgy=Infinity,ygy=-Infinity;
-    for(const c of comp){
-      const gx=c%gridW, gy=Math.floor(c/gridW);
-      sx+=gx;sy+=gy;
-      if(gx<mgx)mgx=gx;if(gx>xgx)xgx=gx;if(gy<mgy)mgy=gy;if(gy>ygy)ygy=gy;
-    }
-    const cx=xMin+(sx/comp.length)*STEP, cy=yMin+(sy/comp.length)*STEP;
-    const bw=(xgx-mgx+1)*STEP, bh=(ygy-mgy+1)*STEP;
-    const radius=Math.max(bw,bh)/2;
-    if(radius<MIN_RADIUS_PX||radius>MAX_RADIUS_PX) continue;
-    if((bw>=bh?bw/bh:bh/bw)>3.5) continue; // allow elongated blobs for fast motion blur
-    if(!passesSizeLock(radius)) continue;
-
-    let score=comp.length*(comp.length/(bw*bh));
-    const ncc=nccScore(curFrame,cx,cy);
-    if(ncc>NCC_THRESHOLD) score*=(ncc+0.5);
-    if(lastKnownPosition&&searchFull){
-      const dd=Math.sqrt((cx-lastKnownPosition.x)**2+(cy-lastKnownPosition.y)**2);
-      score/=(1+dd*0.015);
-    }
-
-    blobs.push({cx,cy,radius,score,size:comp.length});
-    if(score>bestScore){bestScore=score;best={cx,cy,radius,size:comp.length};}
+    for(const c of comp){const gx=c%gridW,gy=Math.floor(c/gridW);sx+=gx;sy+=gy;if(gx<mgx)mgx=gx;if(gx>xgx)xgx=gx;if(gy<mgy)mgy=gy;if(gy>ygy)ygy=gy;}
+    const cx=xMin+(sx/comp.length)*STEP,cy=yMin+(sy/comp.length)*STEP;
+    const bw=(xgx-mgx+1)*STEP,bh=(ygy-mgy+1)*STEP;const radius=Math.max(bw,bh)/2;
+    if(radius<MIN_RADIUS_PX||radius>MAX_RADIUS_PX)continue;if((bw>=bh?bw/bh:bh/bw)>3.5)continue;if(!passesSizeLock(radius))continue;
+    // ── CONE FILTER ──
+    if(coneOrigin&&!isInsideCone(cx,cy))continue;
+    let score=comp.length*(comp.length/(bw*bh));const ncc=nccScore(curFrame,cx,cy);if(ncc>NCC_THRESHOLD)score*=(ncc+0.5);
+    if(lastKnownPosition&&searchFull){const dd=Math.sqrt((cx-lastKnownPosition.x)**2+(cy-lastKnownPosition.y)**2);score/=(1+dd*0.015);}
+    blobs.push({cx,cy,radius,score,size:comp.length});if(score>bestScore){bestScore=score;best={cx,cy,radius,size:comp.length};}
   }
-
-  if(debugMode) lastDebugBlobs=blobs;
-  if(!best) return null;
-  return {x:best.cx, y:best.cy, radius:best.radius};
+  if(debugMode)lastDebugBlobs=blobs;if(!best)return null;return{x:best.cx,y:best.cy,radius:best.radius};
 }
 
-/* =====================================================================
-   CAPTURE REFERENCE
-   ===================================================================== */
-function captureReference() {
-  referenceFrame = grabFrame();
-  btnStartTracking.disabled = false;
-  btnReset.disabled = false;
-  detectionBox.classList.add('detecting');
-  setStatus('Reference Captured\nPlace ball in box\nthen START TRACKING');
-  showToast('✅ Reference captured');
-}
+// ── CAPTURE REF ──
+function captureReference(){referenceFrame=grabFrame();btnStartTracking.disabled=false;btnReset.disabled=false;detectionBox.classList.add('detecting');setStatus('Reference Captured\nPlace ball in box\nthen START TRACKING');showToast('✅ Reference captured');}
 
-/* =====================================================================
-   START TRACKING
-   ===================================================================== */
-function startTracking() {
-  if (!referenceFrame) return;
-  tracking=true; capturedFrames=[]; kalmanFilter=new KalmanFilter();
-  lastKnownPosition=null; lockedRadius=null; ballTemplate=null;
-  missedFrames=0; lastCaptureTime=0; framesSinceFirstDetect=0;
-  lastDebugBlobs=[]; lastDebugGrid=null;
-  detectionBox.classList.remove('detecting');
-  detectionBox.classList.add('locked');
-  metricsPanel.classList.add('show');
-  btnStartTracking.disabled=true; btnCaptureRef.disabled=true;
-  setStatus('TRACKING ACTIVE');
-  showToast('🏌️ Tracking started — swing!');
+// ── START TRACKING ──
+function startTracking(){
+  if(!referenceFrame)return;tracking=true;capturedFrames=[];kalmanFilter=new KalmanFilter();
+  lastKnownPosition=null;lockedRadius=null;ballTemplate=null;missedFrames=0;lastCaptureTime=0;
+  framesSinceFirstDetect=0;coneOrigin=null;lastDebugBlobs=[];lastDebugGrid=null;
+  detectionBox.classList.remove('detecting');detectionBox.classList.add('locked');metricsPanel.classList.add('show');
+  btnStartTracking.disabled=true;btnCaptureRef.disabled=true;setStatus('TRACKING ACTIVE');showToast('🏌️ Tracking started — swing!');
   startTrackingLoop();
 }
 
-/* =====================================================================
-   TRACKING LOOP
-   ===================================================================== */
-function startTrackingLoop() {
-  if (!tracking) return;
-  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype)
-    trackingLoopId = video.requestVideoFrameCallback(onFrame);
-  else
-    trackingLoopId = requestAnimationFrame(onFrameRAF);
-}
-function onFrame() {
-  if (!tracking) return;
-  processFrame();
-  if (tracking) trackingLoopId = video.requestVideoFrameCallback(onFrame);
-}
-function onFrameRAF() {
-  if (!tracking) return;
-  processFrame();
-  if (tracking) trackingLoopId = requestAnimationFrame(onFrameRAF);
+// ── TRACKING LOOP ──
+function startTrackingLoop(){if(!tracking)return;if('requestVideoFrameCallback' in HTMLVideoElement.prototype)trackingLoopId=video.requestVideoFrameCallback(onFrame);else trackingLoopId=requestAnimationFrame(onFrameRAF);}
+function onFrame(){if(!tracking)return;processFrame();if(tracking)trackingLoopId=video.requestVideoFrameCallback(onFrame);}
+function onFrameRAF(){if(!tracking)return;processFrame();if(tracking)trackingLoopId=requestAnimationFrame(onFrameRAF);}
+
+function processFrame(){
+  if(!tracking)return;lastCaptureTime=performance.now();
+  const cur=grabFrame();const box=getDetectionBoxRect();const pos=findBall(referenceFrame,cur,box,true);
+  if(pos){
+    missedFrames=0;framesSinceFirstDetect++;
+    if(!coneOrigin){coneOrigin={x:pos.x,y:pos.y};} // lock cone origin on first detection
+    const finalPos=USE_RAW_DETECTION?{x:pos.x,y:pos.y}:kalmanFilter.update(pos);
+    if(USE_RAW_DETECTION)kalmanFilter.update(pos);lastKnownPosition=finalPos;
+    if(lockedRadius===null){lockedRadius=pos.radius;ballTemplate=buildTemplate(cur,pos.x,pos.y,pos.radius);}else{lockedRadius=0.5*lockedRadius+0.5*pos.radius;}
+    capturedFrames.push({x:finalPos.x,y:finalPos.y,radius:lockedRadius,t:performance.now()});
+    if(capturedFrames.length>=3){const traj=calcTrajectory();if(traj)updateMetrics(capturedFrames.length,traj.angle,traj.direction,null);else updateMetrics(capturedFrames.length,null,null,null);}else{updateMetrics(capturedFrames.length,null,null,null);}
+    if(debugMode)updateDebugInfo(pos,true);
+  }else{
+    missedFrames++;if(debugMode)updateDebugInfo(null,false);
+    if(missedFrames<=MAX_MISSED_FRAMES&&kalmanFilter&&kalmanFilter.initialized){const pred=kalmanFilter.predict();lastKnownPosition=pred;capturedFrames.push({x:pred.x,y:pred.y,radius:lockedRadius||20,t:performance.now(),predicted:true});updateMetrics(capturedFrames.length,null,null,null);}
+    else if(missedFrames>MAX_MISSED_FRAMES){setStatus('Shot Complete ✓\nBall exited frame');showToast('🏌️ Shot complete — press RESET');tracking=false;if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}btnReset.disabled=false;}
+  }
 }
 
-function processFrame() {
-  if (!tracking) return;
-  lastCaptureTime = performance.now();
-  const cur = grabFrame();
-  const box = getDetectionBoxRect();
-  const pos = findBall(referenceFrame, cur, box, true);
+// ── DEBUG ──
+function updateDebugInfo(pos,found){
+  if(!debugMode)return;const track=video.srcObject?.getVideoTracks()[0];let shutterStr='--',isoStr='--';
+  if(track?.getSettings){const s=track.getSettings();if(s.exposureTime)shutterStr='1/'+Math.round(1e6/s.exposureTime)+'s ('+s.exposureTime+'µs)';if(s.iso)isoStr=s.iso;}
+  debugInfoEl.textContent=[`📹 ${video.videoWidth}x${video.videoHeight}`,`⚡ Shutter: ${shutterStr}`,`📷 ISO: ${isoStr}`,`🔍 Blobs found: ${lastDebugBlobs.length}`,found?`✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}`:`❌ Ball: not found (miss ${missedFrames})`,`📦 Frames: ${capturedFrames.length}`,`🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,`🎯 Cone origin: ${coneOrigin?`(${Math.round(coneOrigin.x)},${Math.round(coneOrigin.y)})`:'--'}`].join('\n');
+}
 
-  if (pos) {
-    missedFrames=0;
-    framesSinceFirstDetect++;
-    const finalPos = USE_RAW_DETECTION ? {x:pos.x,y:pos.y} : kalmanFilter.update(pos);
-    if (USE_RAW_DETECTION) kalmanFilter.update(pos);
-    lastKnownPosition = finalPos;
+// ── TRAJECTORY ──
+function calcTrajectory(){
+  if(capturedFrames.length<3)return null;const f=capturedFrames[0],l=capturedFrames[capturedFrames.length-1];
+  const dx=l.x-f.x,dy=-(l.y-f.y);let deg=Math.atan2(dy,dx)*(180/Math.PI);deg=Math.max(-90,Math.min(90,deg));
+  return{angle:deg,direction:deg>2?'Right':deg<-2?'Left':'Straight'};
+}
 
-    if (lockedRadius===null) {
-      lockedRadius = pos.radius;
-      ballTemplate = buildTemplate(cur, pos.x, pos.y, pos.radius);
-    } else {
-      lockedRadius = 0.5*lockedRadius + 0.5*pos.radius;
-    }
-    capturedFrames.push({x:finalPos.x, y:finalPos.y, radius:lockedRadius, t:performance.now()});
-    if (capturedFrames.length>=3) {
-      const traj = calcTrajectory();
-      if (traj) updateMetrics(capturedFrames.length, traj.angle, traj.direction, null);
-      else updateMetrics(capturedFrames.length, null, null, null);
-    } else {
-      updateMetrics(capturedFrames.length, null, null, null);
-    }
-    if (debugMode) updateDebugInfo(pos, true);
+// ── DRAW ──
+function applyDrawTransform(){const t=getCoverTransform();if(!t)return false;ctx.setTransform(t.scale,0,0,t.scale,-t.cropX,-t.cropY);return true;}
+function resetTransform(){ctx.setTransform(1,0,0,1,0,0);}
+
+// ── CONE + FORWARD ARROW DRAWING ──
+function drawConeAndArrow(vw,vh,t){
+  const isLandscape=window.innerWidth>=window.innerHeight;
+  const lw=t?1.5/t.scale:1.5;
+  const sc=t?1/t.scale:1;
+
+  const apex=getConeApex();
+  const apexX=apex.x, apexY=apex.y;
+
+  const fwdAngle=isLandscape?0:-Math.PI/2;
+  const coneLen=isLandscape?vw*1.5:vh*1.5;
+  const perpX=-Math.sin(fwdAngle), perpY=Math.cos(fwdAngle);
+
+  // Ray origins = the two corners of the detection box on the "back" edge
+  // (left edge in landscape, bottom edge in portrait) in video pixel coords.
+  // These are the exact box corners so the cone visually connects to the box.
+  const br=getDetectionBoxRect();
+  let base1x, base1y, base2x, base2y;
+  if(isLandscape){
+    // top-right and bottom-right corners of the box
+    base1x=br.x+br.width; base1y=br.y;
+    base2x=br.x+br.width; base2y=br.y+br.height;
   } else {
-    missedFrames++;
-    if (debugMode) updateDebugInfo(null, false);
-    if (missedFrames<=MAX_MISSED_FRAMES && kalmanFilter && kalmanFilter.initialized) {
-      const pred = kalmanFilter.predict();
-      lastKnownPosition = pred;
-      capturedFrames.push({x:pred.x,y:pred.y,radius:lockedRadius||20,t:performance.now(),predicted:true});
-      updateMetrics(capturedFrames.length, null, null, null);
-    } else if (missedFrames>MAX_MISSED_FRAMES) {
-      setStatus('Shot Complete ✓\nBall exited frame');
-      showToast('🏌️ Shot complete — press RESET');
-      tracking=false;
-      if(trackingLoopId!==null){
-        if('requestVideoFrameCallback' in HTMLVideoElement.prototype)
-          video.cancelVideoFrameCallback(trackingLoopId);
-        else cancelAnimationFrame(trackingLoopId);
-        trackingLoopId=null;
-      }
-      btnReset.disabled=false;
-    }
+    // top-left and top-right corners of the box (portrait: ball goes upward)
+    base1x=br.x;          base1y=br.y;
+    base2x=br.x+br.width; base2y=br.y;
   }
-}
 
-/* =====================================================================
-   DEBUG INFO
-   ===================================================================== */
-function updateDebugInfo(pos, found) {
-  if (!debugMode) return;
-  const track = video.srcObject?.getVideoTracks()[0];
-  let shutterStr='--', isoStr='--';
-  if (track?.getSettings) {
-    const s=track.getSettings();
-    if (s.exposureTime) shutterStr='1/'+Math.round(1e6/s.exposureTime)+'s ('+s.exposureTime+'µs)';
-    if (s.iso) isoStr=s.iso;
+  const ray1A=fwdAngle-CONE_HALF_RAD;
+  const ray2A=fwdAngle+CONE_HALF_RAD;
+  const r1x=base1x+Math.cos(ray1A)*coneLen, r1y=base1y+Math.sin(ray1A)*coneLen;
+  const r2x=base2x+Math.cos(ray2A)*coneLen, r2y=base2y+Math.sin(ray2A)*coneLen;
+
+  ctx.save();
+
+  // Filled trapezoid zone (subtle)
+  ctx.beginPath();
+  ctx.moveTo(base1x,base1y);
+  ctx.lineTo(r1x,r1y);
+  ctx.lineTo(r2x,r2y);
+  ctx.lineTo(base2x,base2y);
+  ctx.closePath();
+  ctx.fillStyle='rgba(255,220,0,0.06)';ctx.fill();
+
+  // Cone boundary dashes — from box corners outward
+  ctx.setLineDash([Math.round(12*sc),Math.round(5*sc)]);
+  ctx.strokeStyle='rgba(255,220,0,0.5)';ctx.lineWidth=lw;
+  ctx.beginPath();ctx.moveTo(base1x,base1y);ctx.lineTo(r1x,r1y);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(base2x,base2y);ctx.lineTo(r2x,r2y);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Angle labels
+  ctx.font=`bold ${Math.round(10*sc)}px system-ui`;ctx.fillStyle='rgba(255,220,0,0.8)';ctx.textAlign='center';
+  const lblOff=Math.round(22*sc);
+  ctx.fillText(`-${CONE_HALF_DEG}°`,base1x+Math.cos(ray1A)*lblOff,base1y+Math.sin(ray1A)*lblOff);
+  ctx.fillText(`+${CONE_HALF_DEG}°`,base2x+Math.cos(ray2A)*lblOff,base2y+Math.sin(ray2A)*lblOff);
+
+  // ── Centre guideline — full width/height line through the midpoint of the frame ──
+  // In landscape this is a horizontal line at video-centre-Y; portrait a vertical line at centre-X.
+  // Drawn before the arrow so the arrow sits on top.
+  ctx.save();
+  if(isLandscape){
+    // Horizontal line at apex Y (which is the vertical centre of the frame)
+    const gy=apexY; // apex is already at vertical centre
+    // Solid centre tick
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=lw*0.8;
+    ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(vw,gy);ctx.stroke();
+    // Small centre notch to mark the exact midpoint
+    const notchH=Math.round(8*sc);
+    ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=lw*1.2;
+    ctx.beginPath();ctx.moveTo(vw/2-notchH,gy);ctx.lineTo(vw/2+notchH,gy);ctx.stroke();
+  } else {
+    const gx=apexX;
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=lw*0.8;
+    ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,vh);ctx.stroke();
+    const notchW=Math.round(8*sc);
+    ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=lw*1.2;
+    ctx.beginPath();ctx.moveTo(gx,vh/2-notchW);ctx.lineTo(gx,vh/2+notchW);ctx.stroke();
   }
-  const lines=[
-    `📹 ${video.videoWidth}×${video.videoHeight}`,
-    `⚡ Shutter: ${shutterStr}`,
-    `📷 ISO: ${isoStr}`,
-    `🔍 Blobs found: ${lastDebugBlobs.length}`,
-    found ? `✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}` : `❌ Ball: not found (miss ${missedFrames})`,
-    `📦 Frames: ${capturedFrames.length}`,
-    `🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,
-  ];
-  debugInfoEl.textContent = lines.join('\n');
+  ctx.restore();
+
+  // ── Forward arrow — lighter/thinner than before ──
+  const shaftLen=Math.round(sc*(isLandscape?vw*0.07:vh*0.07));
+  const headLen=Math.round(shaftLen*0.40);
+  const headW=headLen*0.50;
+  const aStartX=apexX+Math.cos(fwdAngle)*shaftLen*0.3;
+  const aStartY=apexY+Math.sin(fwdAngle)*shaftLen*0.3;
+  const aTipX=aStartX+Math.cos(fwdAngle)*shaftLen;
+  const aTipY=aStartY+Math.sin(fwdAngle)*shaftLen;
+  const aBaseX=aTipX-Math.cos(fwdAngle)*headLen;
+  const aBaseY=aTipY-Math.sin(fwdAngle)*headLen;
+
+  // Single light pass — no heavy glow
+  ctx.strokeStyle='rgba(255,255,255,0.45)';ctx.lineWidth=lw*1.2;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(aStartX,aStartY);ctx.lineTo(aBaseX,aBaseY);ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,0.45)';
+  ctx.beginPath();ctx.moveTo(aTipX,aTipY);ctx.lineTo(aBaseX+perpX*headW,aBaseY+perpY*headW);ctx.lineTo(aBaseX-perpX*headW,aBaseY-perpY*headW);ctx.closePath();ctx.fill();
+
+  ctx.restore();
 }
 
-/* =====================================================================
-   TRAJECTORY
-   ===================================================================== */
-function calcTrajectory() {
-  if (capturedFrames.length<3) return null;
-  const f=capturedFrames[0], l=capturedFrames[capturedFrames.length-1];
-  const dx=l.x-f.x, dy=-(l.y-f.y);
-  let deg=Math.atan2(dy,dx)*(180/Math.PI);
-  deg=Math.max(-90,Math.min(90,deg));
-  return {angle:deg, direction:deg>2?'Right':deg<-2?'Left':'Straight'};
-}
+function drawFrame(){
+  const dpr=window.devicePixelRatio||1;const sw=Math.round(window.innerWidth*dpr),sh=Math.round(window.innerHeight*dpr);
+  if(overlay.width!==sw||overlay.height!==sh){overlay.width=sw;overlay.height=sh;overlay.style.width=window.innerWidth+'px';overlay.style.height=window.innerHeight+'px';}
+  ctx.clearRect(0,0,sw,sh);const hasT=applyDrawTransform();const vw=video.videoWidth||sw,vh=video.videoHeight||sh;const t=hasT?getCoverTransform():null;const lw=t?2/t.scale:2;
 
-/* =====================================================================
-   COVER-CROP TRANSFORM for canvas drawing
-   ===================================================================== */
-function applyDrawTransform() {
-  const t=getCoverTransform();
-  if (!t) return false;
-  ctx.setTransform(t.scale,0,0,t.scale,-t.cropX,-t.cropY);
-  return true;
-}
-function resetTransform() { ctx.setTransform(1,0,0,1,0,0); }
-
-/* =====================================================================
-   DRAW FRAME
-   ===================================================================== */
-function drawFrame() {
-  // Keep canvas at screen pixels
-  const dpr=window.devicePixelRatio||1;
-  const sw=Math.round(window.innerWidth*dpr), sh=Math.round(window.innerHeight*dpr);
-  if (overlay.width!==sw||overlay.height!==sh) {
-    overlay.width=sw; overlay.height=sh;
-    overlay.style.width=window.innerWidth+'px'; overlay.style.height=window.innerHeight+'px';
-  }
-  ctx.clearRect(0,0,sw,sh);
-  const hasT = applyDrawTransform();
-  const vw=video.videoWidth||sw, vh=video.videoHeight||sh;
-  const t=hasT?getCoverTransform():null;
-  const lw=t?2/t.scale:2;
-
-  // ── DEBUG: draw pixel heat-map ──
-  if (debugMode && lastDebugGrid) {
-    const {grid,xMin,yMin,gridW,gridH}=lastDebugGrid;
-    ctx.save();
-    for(let gy=0;gy<gridH;gy++) for(let gx=0;gx<gridW;gx++){
-      if(grid[gy*gridW+gx]){
-        const px=xMin+gx*STEP, py=yMin+gy*STEP;
-        ctx.fillStyle='rgba(255,80,0,0.55)';
-        ctx.fillRect(px-1,py-1,STEP+1,STEP+1);
-      }
-    }
-    // Draw all blobs in orange
-    for(const b of lastDebugBlobs){
-      ctx.strokeStyle='rgba(255,160,0,0.8)';
-      ctx.lineWidth=lw;
-      ctx.beginPath();ctx.arc(b.cx,b.cy,b.radius,0,Math.PI*2);ctx.stroke();
-      ctx.fillStyle='rgba(255,200,0,0.9)';
-      ctx.font=`${Math.round(10/t.scale)}px monospace`;
-      ctx.fillText(Math.round(b.score),b.cx+b.radius+2,b.cy);
-    }
+  if(debugMode&&lastDebugGrid){
+    const{grid,xMin,yMin,gridW,gridH}=lastDebugGrid;ctx.save();
+    for(let gy=0;gy<gridH;gy++)for(let gx=0;gx<gridW;gx++){if(grid[gy*gridW+gx]){const px=xMin+gx*STEP,py=yMin+gy*STEP;ctx.fillStyle='rgba(255,80,0,0.55)';ctx.fillRect(px-1,py-1,STEP+1,STEP+1);}}
+    for(const b of lastDebugBlobs){ctx.strokeStyle='rgba(255,160,0,0.8)';ctx.lineWidth=lw;ctx.beginPath();ctx.arc(b.cx,b.cy,b.radius,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(255,200,0,0.9)';ctx.font=`${Math.round(10/t.scale)}px monospace`;ctx.fillText(Math.round(b.score),b.cx+b.radius+2,b.cy);}
     ctx.restore();
   }
 
-  // ── Detection box guide ──
-  if (detectionBox && !tracking) {
-    const br=getDetectionBoxRect();
-    ctx.save();
-    ctx.strokeStyle='rgba(0,255,136,0.6)'; ctx.lineWidth=lw;
-    ctx.strokeRect(br.x,br.y,br.width,br.height);
-    ctx.beginPath();
-    const cx=br.x+br.width/2, cy=br.y+br.height/2;
-    ctx.moveTo(cx,br.y);ctx.lineTo(cx,br.y+br.height);
-    ctx.moveTo(br.x,cy);ctx.lineTo(br.x+br.width,cy);
-    ctx.stroke();
-    ctx.restore();
+  if(detectionBox&&!tracking){
+    const br=getDetectionBoxRect();ctx.save();ctx.strokeStyle='rgba(0,255,136,0.6)';ctx.lineWidth=lw;ctx.strokeRect(br.x,br.y,br.width,br.height);
+    ctx.beginPath();const cx=br.x+br.width/2,cy=br.y+br.height/2;ctx.moveTo(cx,br.y);ctx.lineTo(cx,br.y+br.height);ctx.moveTo(br.x,cy);ctx.lineTo(br.x+br.width,cy);ctx.stroke();ctx.restore();
   }
 
-  // ── Tracking zone ──
-  if (tracking||capturedFrames.length>0) {
-    const isLandscape=window.innerWidth>=window.innerHeight;
-    ctx.save();
-
-    if (USE_VERTICAL_STRIP) {
-      if (isLandscape) {
-        const strip=Math.round(vh*STRIP_WIDTH_PERCENT), cy=Math.round(vh/2);
-        const top=cy-Math.floor(strip/2), bot=cy+Math.ceil(strip/2);
-        ctx.strokeStyle='rgba(231,34,42,0.7)'; ctx.lineWidth=lw;
-        ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(vw,cy);ctx.stroke();
-        ctx.strokeStyle='rgba(0,255,100,0.55)'; ctx.lineWidth=lw*.8;
-        ctx.setLineDash([Math.round(10/t?.scale||10),Math.round(5/t?.scale||5)]);
-        ctx.beginPath();ctx.moveTo(0,top);ctx.lineTo(vw,top);
-        ctx.moveTo(0,bot);ctx.lineTo(vw,bot);ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle='rgba(0,255,100,0.8)';
-        ctx.font=`bold ${Math.round(13/(t?.scale||1))}px system-ui`;
-        ctx.fillText('TRACKING ZONE',20,top-8);
-      } else {
-        const strip=Math.round(vw*STRIP_WIDTH_PERCENT), cx=Math.round(vw/2);
-        const left=cx-Math.floor(strip/2), right=cx+Math.ceil(strip/2);
-        ctx.strokeStyle='rgba(231,34,42,0.7)'; ctx.lineWidth=lw;
-        ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,vh);ctx.stroke();
-        ctx.strokeStyle='rgba(0,255,100,0.55)'; ctx.lineWidth=lw*.8;
-        ctx.setLineDash([Math.round(10/(t?.scale||1)),Math.round(5/(t?.scale||1))]);
-        ctx.beginPath();ctx.moveTo(left,0);ctx.lineTo(left,vh);
-        ctx.moveTo(right,0);ctx.lineTo(right,vh);ctx.stroke();
-        ctx.setLineDash([]);
-      }
+  if(tracking||capturedFrames.length>0){
+    // Show cone ROI bounding box outline (replaces old strip lines)
+    if(debugMode&&coneOrigin){
+      const roi=getConeROI(vw,vh);ctx.save();
+      ctx.strokeStyle='rgba(0,200,255,0.5)';ctx.lineWidth=lw*0.7;
+      ctx.setLineDash([Math.round(6/(t?.scale||1)),Math.round(4/(t?.scale||1))]);
+      ctx.strokeRect(roi.xMin,roi.yMin,roi.xMax-roi.xMin,roi.yMax-roi.yMin);
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(0,200,255,0.7)';ctx.font=`bold ${Math.round(10/(t?.scale||1))}px system-ui`;
+      ctx.fillText('CONE ROI',roi.xMin+4,roi.yMin-4);
+      ctx.restore();
     }
-    ctx.restore();
   }
 
-  // ── Trail & circles ──
-  if (capturedFrames.length>0) {
-    if (capturedFrames.length>1) {
-      ctx.strokeStyle='rgba(0,255,100,0.9)'; ctx.lineWidth=lw*2;
-      ctx.lineCap='round'; ctx.lineJoin='round';
-      ctx.beginPath(); ctx.moveTo(capturedFrames[0].x,capturedFrames[0].y);
-      for(let i=1;i<capturedFrames.length;i++) ctx.lineTo(capturedFrames[i].x,capturedFrames[i].y);
-      ctx.stroke();
-    }
-    for(let i=0;i<capturedFrames.length;i++){
-      const f=capturedFrames[i], op=0.25+(i/capturedFrames.length)*0.25;
-      ctx.fillStyle=f.predicted?`rgba(255,255,100,${op})`:`rgba(255,255,255,${op})`;
-      ctx.strokeStyle=f.predicted?`rgba(200,200,100,${op*.8})`:`rgba(200,200,200,${op*.8})`;
-      ctx.lineWidth=lw;
-      ctx.beginPath();ctx.arc(f.x,f.y,f.radius,0,Math.PI*2);ctx.fill();ctx.stroke();
-    }
-    const lat=capturedFrames[capturedFrames.length-1];
-    ctx.strokeStyle='rgba(255,220,0,1)'; ctx.lineWidth=lw*1.5;
-    ctx.beginPath();ctx.arc(lat.x,lat.y,lat.radius+5,0,Math.PI*2);ctx.stroke();
-  }
+  // ── CONE + ARROW (always shown when camera active) ──
+  if(video.videoWidth&&video.videoHeight){drawConeAndArrow(vw,vh,t);}
 
+  if(capturedFrames.length>0){
+    if(capturedFrames.length>1){ctx.strokeStyle='rgba(0,255,100,0.9)';ctx.lineWidth=lw*2;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(capturedFrames[0].x,capturedFrames[0].y);for(let i=1;i<capturedFrames.length;i++)ctx.lineTo(capturedFrames[i].x,capturedFrames[i].y);ctx.stroke();}
+    for(let i=0;i<capturedFrames.length;i++){const f=capturedFrames[i],op=0.25+(i/capturedFrames.length)*0.25;ctx.fillStyle=f.predicted?`rgba(255,255,100,${op})`:`rgba(255,255,255,${op})`;ctx.strokeStyle=f.predicted?`rgba(200,200,100,${op*.8})`:`rgba(200,200,200,${op*.8})`;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(f.x,f.y,f.radius,0,Math.PI*2);ctx.fill();ctx.stroke();}
+    const lat=capturedFrames[capturedFrames.length-1];ctx.strokeStyle='rgba(255,220,0,1)';ctx.lineWidth=lw*1.5;ctx.beginPath();ctx.arc(lat.x,lat.y,lat.radius+5,0,Math.PI*2);ctx.stroke();
+  }
   resetTransform();
 }
 
-/* =====================================================================
-   RENDER LOOP
-   ===================================================================== */
-function renderLoop() {
-  requestAnimationFrame(renderLoop);
-  if (!video.videoWidth||!overlay.width) return;
-  drawFrame();
-}
+function renderLoop(){requestAnimationFrame(renderLoop);if(!video.videoWidth||!overlay.width)return;drawFrame();}
 
-/* =====================================================================
-   RESET
-   ===================================================================== */
-function reset() {
+function reset(){
   tracking=false;
-  if(trackingLoopId!==null){
-    if('requestVideoFrameCallback' in HTMLVideoElement.prototype)
-      video.cancelVideoFrameCallback(trackingLoopId);
-    else cancelAnimationFrame(trackingLoopId);
-    trackingLoopId=null;
-  }
-  referenceFrame=null; capturedFrames=[]; kalmanFilter=null;
-  lastKnownPosition=null; lockedRadius=null; ballTemplate=null;
-  missedFrames=0; lastCaptureTime=0; framesSinceFirstDetect=0;
-  lastDebugBlobs=[]; lastDebugGrid=null;
-  ctx.clearRect(0,0,overlay.width,overlay.height);
-  detectionBox.classList.remove('detecting','locked');
-  metricsPanel.classList.remove('show');
-  btnCaptureRef.disabled=false; btnStartTracking.disabled=true;
-  updateMetrics(0,null,null,null);
-  setStatus('Ready to Capture\nPress CAPTURE REFERENCE');
-  showToast('🔄 Reset');
+  if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}
+  referenceFrame=null;capturedFrames=[];kalmanFilter=null;lastKnownPosition=null;lockedRadius=null;ballTemplate=null;
+  missedFrames=0;lastCaptureTime=0;framesSinceFirstDetect=0;coneOrigin=null;lastDebugBlobs=[];lastDebugGrid=null;
+  ctx.clearRect(0,0,overlay.width,overlay.height);detectionBox.classList.remove('detecting','locked');metricsPanel.classList.remove('show');
+  btnCaptureRef.disabled=false;btnStartTracking.disabled=true;updateMetrics(0,null,null,null);setStatus('Ready to Capture\nPress CAPTURE REFERENCE');showToast('🔄 Reset');
 }
 
-/* =====================================================================
-   DEBUG TOGGLE
-   ===================================================================== */
-function toggleDebug() {
-  debugMode = !debugMode;
-  btnDebug.textContent = debugMode ? '🔬 DEBUG ON' : '🔬 DEBUG OFF';
-  btnDebug.classList.toggle('active', debugMode);
-  debugInfoEl.classList.toggle('show', debugMode);
-  if (!debugMode) { lastDebugBlobs=[]; lastDebugGrid=null; debugInfoEl.textContent=''; }
-  showToast(debugMode ? '🔬 Debug ON — orange dots = detected pixels' : '🔬 Debug OFF');
+function toggleDebug(){
+  debugMode=!debugMode;btnDebug.textContent=debugMode?'🔬 DEBUG ON':'🔬 DEBUG OFF';btnDebug.classList.toggle('active',debugMode);debugInfoEl.classList.toggle('show',debugMode);
+  if(!debugMode){lastDebugBlobs=[];lastDebugGrid=null;debugInfoEl.textContent='';}showToast(debugMode?'🔬 Debug ON — orange dots = detected pixels':'🔬 Debug OFF');
 }
 
-/* =====================================================================
-   EVENTS & INIT
-   ===================================================================== */
-/* ── CAMERA PANEL TOGGLE ── */
-const camPanelToggleBtn = document.getElementById('camPanelToggle');
-camPanelToggleBtn.addEventListener('click', () => {
-  camPanel.classList.toggle('show');
-  camPanelToggleBtn.textContent = camPanel.classList.contains('show') ? '✕ CLOSE' : '⚙️ CAMERA';
-});
+const camPanelToggleBtn=document.getElementById('camPanelToggle');
+camPanelToggleBtn.addEventListener('click',()=>{camPanel.classList.toggle('show');camPanelToggleBtn.textContent=camPanel.classList.contains('show')?'✕ CLOSE':'⚙️ CAMERA';});
+btnStartCamera.addEventListener('click',startCamera);
+btnCaptureRef.addEventListener('click',captureReference);
+btnStartTracking.addEventListener('click',startTracking);
+btnReset.addEventListener('click',reset);
+btnDebug.addEventListener('click',toggleDebug);
 
-btnStartCamera.addEventListener('click', startCamera);
-btnCaptureRef.addEventListener('click', captureReference);
-btnStartTracking.addEventListener('click', startTracking);
-btnReset.addEventListener('click', reset);
-btnDebug.addEventListener('click', toggleDebug);
-
-createDetectionBox();
-setStatus('Ready\nPress START CAMERA');
-renderLoop();
+createDetectionBox();setStatus('Ready\nPress START CAMERA');renderLoop();
 </script>
 </body>
 </html>
