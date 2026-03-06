@@ -104,14 +104,20 @@ Press START CAMERA</div>
 <script>
 // ── CONFIG ──
 const DIFF_THR=15,MIN_BLOB_PX=3,MAX_BLOB_PX=40000,MIN_RADIUS_PX=3,MAX_RADIUS_PX=200,STEP=3;
-const RADIUS_TOLERANCE=0.75,ROI_TRACKING=250,ROI_SEARCHING=500,MAX_MISSED_FRAMES=20;
+const RADIUS_TOLERANCE=0.75,ROI_TRACKING=300,ROI_SEARCHING=500,MAX_MISSED_FRAMES=20;
 const USE_RAW_DETECTION=true;
 const WHITE_BRIGHTNESS_MIN=145,WHITE_CHROMA_MAX=65;
+// NCC disabled during flight to avoid template lock-on stale position
 const NCC_WARMUP_FRAMES=0,NCC_THRESHOLD=0.50;
 const USE_VERTICAL_STRIP=true,STRIP_WIDTH_PERCENT=0.45,BOX_SIZE=200;
 // CONE
 const CONE_HALF_DEG=20;
 const CONE_HALF_RAD=CONE_HALF_DEG*Math.PI/180;
+
+// ── FIX: Forward progress scoring weights ──
+// Instead of penalising distance from last position (which caused curling),
+// we REWARD movement in the forward direction of travel.
+const FORWARD_PROGRESS_WEIGHT = 0.02; // bonus per px of forward movement
 
 const video=document.getElementById('video');
 const overlay=document.getElementById('overlay');
@@ -141,6 +147,8 @@ let detectionBox=null,kalmanFilter=null,lastKnownPosition=null;
 let lockedRadius=null,ballTemplate=null,missedFrames=0,trackingLoopId=null;
 let lastCaptureTime=0,framesSinceFirstDetect=0,debugMode=false;
 let lastDebugBlobs=[],lastDebugGrid=null,coneOrigin=null,ballInFlight=false;
+// ── FIX: track inferred velocity direction for forward-bias scoring ──
+let flightVelocity={x:0,y:0};
 
 const offscreen=document.createElement('canvas');
 const offscreenCtx=offscreen.getContext('2d',{willReadFrequently:true});
@@ -158,7 +166,6 @@ function isWhitePixel(r,g,b){const lum=(r+g+b)/3;if(lum<WHITE_BRIGHTNESS_MIN)ret
 function grabFrame(){offscreenCtx.drawImage(video,0,0);return offscreenCtx.getImageData(0,0,offscreen.width,offscreen.height);}
 
 // ── CONE ──
-// LEFTY: ball travels right-to-left in landscape (fwdAngle = Math.PI, i.e. -x direction)
 function getConeApex(){
   if(coneOrigin) return coneOrigin;
   if(detectionBox&&video.videoWidth){
@@ -168,15 +175,12 @@ function getConeApex(){
   return{x:(video.videoWidth||640)/2, y:(video.videoHeight||480)/2};
 }
 function getForwardAngle(){
-  // Lefty landscape: ball goes leftward = angle Math.PI (-x)
-  // Portrait: ball goes upward = -π/2
   return window.innerWidth>=window.innerHeight ? Math.PI : -Math.PI/2;
 }
 function isInsideCone(cx,cy){
   if(!coneOrigin)return true;
   const br=getDetectionBoxRect();
   const isLandscape=window.innerWidth>=window.innerHeight;
-  // Lefty: apex on RIGHT edge, rays go left through LEFT corners
   const apexX = isLandscape ? br.x+br.width : br.x+br.width/2;
   const apexY = isLandscape ? br.y+br.height/2 : br.y;
   const c1x   = isLandscape ? br.x : br.x;
@@ -189,7 +193,6 @@ function isInsideCone(cx,cy){
   const fwdAngle=getForwardAngle();
   const fwd=dx*Math.cos(fwdAngle)+dy*Math.sin(fwdAngle);
   if(fwd<0)return false;
-  // Cross products — winding: ray1 is top-left, ray2 is bottom-left (for lefty landscape)
   const cross1=d1x*dy-d1y*dx;
   const cross2=d2x*dy-d2y*dx;
   return cross1>=0&&cross2<=0;
@@ -203,12 +206,10 @@ async function initCameraControls(track){
   if(typeof ImageCapture!=='undefined'){try{imageCapturer=new ImageCapture(track);}catch(e){imageCapturer=null;}}
   const hasShutter=!!(caps.exposureTime);
   capShutter.textContent=hasShutter?'OK':'N/A';capShutter.className='cap-badge '+(hasShutter?'cap-yes':'cap-no');
-  // Shutter: default to MINIMUM exposure time (fastest possible = Golfboy approach)
-  // This freezes fast ball motion. Darker image is expected — use bright LED lighting.
   if(hasShutter){
     slShutter.min=caps.exposureTime.min??100;
     slShutter.max=caps.exposureTime.max??33333;
-    slShutter.value=slShutter.min; // always start at minimum (fastest)
+    slShutter.value=slShutter.min;
     slShutter.disabled=false;
     updateShutterLabel(slShutter.value);
   }else{slShutter.disabled=true;}
@@ -221,14 +222,13 @@ async function initCameraControls(track){
   const supported=[hasShutter&&'Shutter',hasISO&&'ISO',hasEV&&'EV'].filter(Boolean);
   camHint.textContent=supported.length===0
     ?'⚠️ No manual controls. Use bright flicker-free LED lighting for best results.'
-    :'💡 Shutter set to MINIMUM (fastest). Image will be dark — use bright flicker-free LED lights. This is how Golfboy works.';
+    :'💡 Shutter set to MINIMUM (fastest). Image will be dark — use bright flicker-free LED lights.';
   await applyFastShutter(track);
 }
 function updateShutterLabel(us){us=parseInt(us);valShutter.textContent=us<1000?us+'µs':'1/'+Math.round(1e6/us)+'s';}
 async function applyFastShutter(track){
   if(!track)return;const caps=cameraCapabilities;const constraints={advanced:[{}]};let applied=false;
   if(caps.exposureMode&&caps.exposureMode.includes('manual')&&caps.exposureTime){
-    // Use absolute minimum exposure time — fastest shutter possible (Golfboy approach)
     const minET=caps.exposureTime.min??100;
     constraints.advanced[0].exposureMode='manual';
     constraints.advanced[0].exposureTime=minET;
@@ -320,20 +320,18 @@ function buildTemplate(frame,cx,cy,radius){
   const mean=sum/patch.length;let norm=0;for(let i=0;i<patch.length;i++){patch[i]-=mean;norm+=patch[i]*patch[i];}norm=Math.sqrt(norm)||1;for(let i=0;i<patch.length;i++)patch[i]/=norm;return{patch,side};
 }
 function nccScore(frame,cx,cy){
-  if(!ballTemplate||framesSinceFirstDetect<NCC_WARMUP_FRAMES)return 1;
+  // ── FIX: NCC disabled during flight — stale template causes lock-back to origin ──
+  if(!ballTemplate||framesSinceFirstDetect<NCC_WARMUP_FRAMES||ballInFlight)return 1;
   const{patch,side}=ballTemplate,half=Math.floor(side/2),w=frame.width;const cand=new Float32Array(side*side);let sum=0;
   for(let dy=-half;dy<=half;dy++)for(let dx=-half;dx<=half;dx++){const px=Math.round(cx)+dx,py=Math.round(cy)+dy;if(px<0||px>=w||py<0||py>=frame.height)continue;const i=(py*w+px)*4,lum=(frame.data[i]+frame.data[i+1]+frame.data[i+2])/3;cand[(dy+half)*side+(dx+half)]=lum;sum+=lum;}
   const mean=sum/cand.length;let norm=0;for(let i=0;i<cand.length;i++){cand[i]-=mean;norm+=cand[i]*cand[i];}norm=Math.sqrt(norm)||1;let dot=0;for(let i=0;i<patch.length;i++)dot+=patch[i]*(cand[i]/norm);return dot;
 }
 
 // ── FIND BALL ──
-// Computes the axis-aligned bounding box of the ±20° cone from apex out to
-// the frame edge, so the pixel scan is tight to the valid zone.
 function getConeROI(w,h){
   const isLandscape=window.innerWidth>=window.innerHeight;
   const extLen=Math.sqrt(w*w+h*h)*1.1;
   const br=getDetectionBoxRect();
-  // Lefty landscape: apex = right-edge midpoint, rays through left corners
   const apexX = isLandscape ? br.x+br.width : br.x+br.width/2;
   const apexY = isLandscape ? br.y+br.height/2 : br.y;
   const c1x   = isLandscape ? br.x : br.x;
@@ -344,7 +342,6 @@ function getConeROI(w,h){
   const d2x=c2x-apexX, d2y=c2y-apexY, l2=Math.sqrt(d2x*d2x+d2y*d2y)||1;
   const r1x=apexX+(d1x/l1)*extLen, r1y=apexY+(d1y/l1)*extLen;
   const r2x=apexX+(d2x/l2)*extLen, r2y=apexY+(d2y/l2)*extLen;
-  // Union with full box
   const xs=[br.x,br.x+br.width,r1x,r2x], ys=[br.y,br.y+br.height,r1y,r2y];
   return{
     xMin:Math.max(0,Math.floor(Math.min(...xs))),
@@ -354,23 +351,38 @@ function getConeROI(w,h){
   };
 }
 
-// Returns true if (cx,cy) is inside the detection box rect
 function isInsideBox(cx,cy){
   const br=getDetectionBoxRect();
   return cx>=br.x&&cx<=br.x+br.width&&cy>=br.y&&cy<=br.y+br.height;
 }
 
+// ── FIX: compute forward progress of a candidate relative to last known position ──
+// Returns positive value if candidate is further along the ball's direction of travel.
+function forwardProgress(cx,cy){
+  if(!lastKnownPosition||!ballInFlight)return 0;
+  const dx=cx-lastKnownPosition.x;
+  const dy=cy-lastKnownPosition.y;
+  // Dot with velocity direction (normalised)
+  const vLen=Math.sqrt(flightVelocity.x*flightVelocity.x+flightVelocity.y*flightVelocity.y)||1;
+  return(dx*flightVelocity.x+dy*flightVelocity.y)/vLen;
+}
+
 function findBall(refFrame,curFrame,boxRect,searchFull=false){
   const w=curFrame.width,h=curFrame.height;let xMin,xMax,yMin,yMax;
   if(searchFull&&ballInFlight&&lastKnownPosition){
-    // Ball in flight — ROI expands with each missed frame so fast ball isn't lost
-    const R=ROI_TRACKING+missedFrames*80;
-    xMin=Math.max(0,Math.floor(lastKnownPosition.x-R));
-    xMax=Math.min(w,Math.ceil(lastKnownPosition.x+R));
-    yMin=Math.max(0,Math.floor(lastKnownPosition.y-R));
-    yMax=Math.min(h,Math.ceil(lastKnownPosition.y+R));
+    // ── FIX: ROI is centred on PREDICTED next position (lastKnown + velocity), not lastKnown
+    // This prevents the ROI from lagging behind a fast ball and causes it to scan ahead.
+    const predictAheadMs=50; // anticipate 50ms forward
+    const vLen=Math.sqrt(flightVelocity.x**2+flightVelocity.y**2);
+    const predictX=lastKnownPosition.x+(flightVelocity.x*(predictAheadMs/1000));
+    const predictY=lastKnownPosition.y+(flightVelocity.y*(predictAheadMs/1000));
+    // ROI grows with missed frames but is anchored to predicted forward position
+    const R=ROI_TRACKING+missedFrames*120;
+    xMin=Math.max(0,Math.floor(predictX-R));
+    xMax=Math.min(w,Math.ceil(predictX+R));
+    yMin=Math.max(0,Math.floor(predictY-R));
+    yMax=Math.min(h,Math.ceil(predictY+R));
   }else{
-    // Waiting for shot: always scan full box + cone region
     const roi=getConeROI(w,h);
     xMin=roi.xMin;xMax=roi.xMax;yMin=roi.yMin;yMax=roi.yMax;
   }
@@ -389,12 +401,30 @@ function findBall(refFrame,curFrame,boxRect,searchFull=false){
     const bw=(xgx-mgx+1)*STEP,bh=(ygy-mgy+1)*STEP;const radius=Math.max(bw,bh)/2;
     if(radius<MIN_RADIUS_PX||radius>MAX_RADIUS_PX)continue;
     if((bw>=bh?bw/bh:bh/bw)>5)continue;
-    // Size lock only before ball is in flight
     if(!ballInFlight&&!passesSizeLock(radius))continue;
-    // Cone filter only applies once in flight and outside box
     if(ballInFlight&&!isInsideBox(cx,cy)&&!isInsideCone(cx,cy))continue;
-    let score=comp.length*(comp.length/(bw*bh));const ncc=nccScore(curFrame,cx,cy);if(ncc>NCC_THRESHOLD)score*=(ncc+0.5);
-    if(lastKnownPosition&&searchFull){const dd=Math.sqrt((cx-lastKnownPosition.x)**2+(cy-lastKnownPosition.y)**2);score/=(1+dd*0.015);}
+
+    // ── Base score: blob compactness (same as before) ──
+    let score=comp.length*(comp.length/(bw*bh));
+
+    // ── NCC boost only when NOT in flight (template is fresh) ──
+    const ncc=nccScore(curFrame,cx,cy);
+    if(ncc>NCC_THRESHOLD)score*=(ncc+0.5);
+
+    // ── FIX: REPLACE distance penalty with forward-progress REWARD ──
+    // Old code penalised any movement away from last position, causing curl.
+    // New code rewards movement in the direction of travel.
+    if(lastKnownPosition&&searchFull&&ballInFlight){
+      const fwdPx=forwardProgress(cx,cy);
+      // Positive forward progress adds score; backward subtracts
+      score += fwdPx * FORWARD_PROGRESS_WEIGHT * score;
+      // Hard-reject any blob that is BEHIND the ball's last known position
+      // (more than 1 radius behind) — prevents back-snap to tee area
+      if(fwdPx < -(lockedRadius||20)*2){
+        continue; // skip this blob entirely
+      }
+    }
+
     blobs.push({cx,cy,radius,score,size:comp.length});if(score>bestScore){bestScore=score;best={cx,cy,radius,size:comp.length};}
   }
   if(debugMode)lastDebugBlobs=blobs;if(!best)return null;return{x:best.cx,y:best.cy,radius:best.radius};
@@ -407,7 +437,9 @@ function captureReference(){referenceFrame=grabFrame();btnStartTracking.disabled
 function startTracking(){
   if(!referenceFrame)return;tracking=true;capturedFrames=[];kalmanFilter=new KalmanFilter();
   lastKnownPosition=null;lockedRadius=null;ballTemplate=null;missedFrames=0;lastCaptureTime=0;
-  framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;lastDebugBlobs=[];lastDebugGrid=null;
+  framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;
+  flightVelocity={x:0,y:0}; // ── FIX: reset velocity
+  lastDebugBlobs=[];lastDebugGrid=null;
   detectionBox.classList.remove('detecting');detectionBox.classList.add('locked');metricsPanel.classList.add('show');
   btnStartTracking.disabled=true;btnCaptureRef.disabled=true;setStatus('TRACKING ACTIVE');showToast('🏌️ Tracking started — swing!');
   startTrackingLoop();
@@ -423,27 +455,46 @@ function processFrame(){
   const cur=grabFrame();const box=getDetectionBoxRect();const pos=findBall(referenceFrame,cur,box,true);
   if(pos){
     missedFrames=0;framesSinceFirstDetect++;
-    // Trip ballInFlight the moment the ball leaves the detection box
     if(!ballInFlight&&!isInsideBox(pos.x,pos.y)){
       ballInFlight=true;
       coneOrigin={x:pos.x,y:pos.y};
     }
+
+    // ── FIX: update flightVelocity from actual detections (not Kalman) so ROI leads forward ──
+    if(lastKnownPosition&&ballInFlight){
+      const dt=Math.max((performance.now()-lastCaptureTime)/1000,0.001);
+      const rawVx=(pos.x-lastKnownPosition.x)/dt;
+      const rawVy=(pos.y-lastKnownPosition.y)/dt;
+      // Smooth velocity with exponential moving average to avoid jitter
+      const alpha=0.4;
+      flightVelocity.x=alpha*rawVx+(1-alpha)*flightVelocity.x;
+      flightVelocity.y=alpha*rawVy+(1-alpha)*flightVelocity.y;
+    }
+
     const finalPos=USE_RAW_DETECTION?{x:pos.x,y:pos.y}:kalmanFilter.update(pos);
     if(USE_RAW_DETECTION)kalmanFilter.update(pos);
     lastKnownPosition=finalPos;
     if(lockedRadius===null){lockedRadius=pos.radius;ballTemplate=buildTemplate(cur,pos.x,pos.y,pos.radius);}
-    else if(!ballInFlight){lockedRadius=0.5*lockedRadius+0.5*pos.radius;} // don't update radius once in flight
+    else if(!ballInFlight){lockedRadius=0.5*lockedRadius+0.5*pos.radius;}
     capturedFrames.push({x:finalPos.x,y:finalPos.y,radius:lockedRadius,t:performance.now()});
     if(capturedFrames.length>=3){const traj=calcTrajectory();if(traj)updateMetrics(capturedFrames.length,traj.angle,traj.direction,null);else updateMetrics(capturedFrames.length,null,null,null);}else{updateMetrics(capturedFrames.length,null,null,null);}
     if(debugMode)updateDebugInfo(pos,true);
   }else{
-    // Only count misses once ball has actually launched
     if(ballInFlight){
       missedFrames++;
       if(missedFrames<=MAX_MISSED_FRAMES&&kalmanFilter&&kalmanFilter.initialized){
         const pred=kalmanFilter.predict();
-        lastKnownPosition=pred;
-        capturedFrames.push({x:pred.x,y:pred.y,radius:lockedRadius||20,t:performance.now(),predicted:true});
+        // ── FIX: also advance lastKnownPosition using velocity so next ROI stays ahead ──
+        if(flightVelocity.x!==0||flightVelocity.y!==0){
+          const dt=0.016; // assume ~60fps
+          lastKnownPosition={
+            x:(lastKnownPosition||pred).x+flightVelocity.x*dt,
+            y:(lastKnownPosition||pred).y+flightVelocity.y*dt
+          };
+        }else{
+          lastKnownPosition=pred;
+        }
+        capturedFrames.push({x:lastKnownPosition.x,y:lastKnownPosition.y,radius:lockedRadius||20,t:performance.now(),predicted:true});
         updateMetrics(capturedFrames.length,null,null,null);
       }else if(missedFrames>MAX_MISSED_FRAMES){
         setStatus('Shot Complete ✓\nBall exited frame');showToast('🏌️ Shot complete — press RESET');
@@ -451,7 +502,6 @@ function processFrame(){
         btnReset.disabled=false;
       }
     }
-    // If ball not yet in flight and not found, just keep waiting silently
     if(debugMode)updateDebugInfo(null,false);
   }
 }
@@ -460,7 +510,8 @@ function processFrame(){
 function updateDebugInfo(pos,found){
   if(!debugMode)return;const track=video.srcObject?.getVideoTracks()[0];let shutterStr='--',isoStr='--';
   if(track?.getSettings){const s=track.getSettings();if(s.exposureTime)shutterStr='1/'+Math.round(1e6/s.exposureTime)+'s ('+s.exposureTime+'µs)';if(s.iso)isoStr=s.iso;}
-  debugInfoEl.textContent=[`📹 ${video.videoWidth}x${video.videoHeight}`,`⚡ Shutter: ${shutterStr}`,`📷 ISO: ${isoStr}`,`🔍 Blobs found: ${lastDebugBlobs.length}`,found?`✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}`:`❌ Ball: not found (miss ${missedFrames})`,`📦 Frames: ${capturedFrames.length}`,`🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,`🚀 In flight: ${ballInFlight}`,`🎯 Cone origin: ${coneOrigin?`(${Math.round(coneOrigin.x)},${Math.round(coneOrigin.y)})`:'--'}`].join('\n');
+  const vSpd=Math.round(Math.sqrt(flightVelocity.x**2+flightVelocity.y**2));
+  debugInfoEl.textContent=[`📹 ${video.videoWidth}x${video.videoHeight}`,`⚡ Shutter: ${shutterStr}`,`📷 ISO: ${isoStr}`,`🔍 Blobs found: ${lastDebugBlobs.length}`,found?`✅ Ball: (${Math.round(pos.x)},${Math.round(pos.y)}) r=${Math.round(pos.radius)}`:`❌ Ball: not found (miss ${missedFrames})`,`📦 Frames: ${capturedFrames.length}`,`🔒 Locked r: ${lockedRadius?Math.round(lockedRadius):'--'}`,`🚀 In flight: ${ballInFlight}`,`💨 Speed: ${vSpd}px/s`,`🎯 Cone origin: ${coneOrigin?`(${Math.round(coneOrigin.x)},${Math.round(coneOrigin.y)})`:'--'}`].join('\n');
 }
 
 // ── TRAJECTORY ──
@@ -474,15 +525,13 @@ function calcTrajectory(){
 function applyDrawTransform(){const t=getCoverTransform();if(!t)return false;ctx.setTransform(t.scale,0,0,t.scale,-t.cropX,-t.cropY);return true;}
 function resetTransform(){ctx.setTransform(1,0,0,1,0,0);}
 
-// ── CONE + FORWARD ARROW DRAWING ──
 function drawConeAndArrow(vw,vh,t){
   const isLandscape=window.innerWidth>=window.innerHeight;
   const lw=t?1.5/t.scale:1.5;
   const sc=t?1/t.scale:1;
-  const fwdAngle=getForwardAngle(); // Math.PI for lefty landscape
+  const fwdAngle=getForwardAngle();
 
   const br=getDetectionBoxRect();
-  // Lefty landscape: apex = midpoint of RIGHT edge, rays go left through LEFT corners
   const apexX = isLandscape ? br.x+br.width : br.x+br.width/2;
   const apexY = isLandscape ? br.y+br.height/2 : br.y;
   const c1x   = isLandscape ? br.x : br.x;
@@ -500,7 +549,6 @@ function drawConeAndArrow(vw,vh,t){
 
   ctx.save();
 
-  // Filled triangle zone
   ctx.beginPath();
   ctx.moveTo(apexX,apexY);
   ctx.lineTo(r1x,r1y);
@@ -508,23 +556,20 @@ function drawConeAndArrow(vw,vh,t){
   ctx.closePath();
   ctx.fillStyle='rgba(255,220,0,0.06)';ctx.fill();
 
-  // Cone boundary dashes
   ctx.setLineDash([Math.round(12*sc),Math.round(5*sc)]);
   ctx.strokeStyle='rgba(255,220,0,0.5)';ctx.lineWidth=lw;
   ctx.beginPath();ctx.moveTo(apexX,apexY);ctx.lineTo(r1x,r1y);ctx.stroke();
   ctx.beginPath();ctx.moveTo(apexX,apexY);ctx.lineTo(r2x,r2y);ctx.stroke();
   ctx.setLineDash([]);
 
-  // Angle labels
   ctx.font=`bold ${Math.round(10*sc)}px system-ui`;ctx.fillStyle='rgba(255,220,0,0.8)';ctx.textAlign='center';
   const lblOff=Math.round(22*sc);
   ctx.fillText(`${CONE_HALF_DEG}°`,c1x+(d1x/l1)*lblOff,c1y+(d1y/l1)*lblOff);
   ctx.fillText(`${CONE_HALF_DEG}°`,c2x+(d2x/l2)*lblOff,c2y+(d2y/l2)*lblOff);
 
-  // ── Centre guideline — full-width horizontal at box vertical centre ──
   ctx.save();
   if(isLandscape){
-    const gy=apexY; // box vertical centre
+    const gy=apexY;
     ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=lw*0.8;
     ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(vw,gy);ctx.stroke();
     const notchH=Math.round(8*sc);
@@ -540,11 +585,9 @@ function drawConeAndArrow(vw,vh,t){
   }
   ctx.restore();
 
-  // ── Forward arrow (points LEFT for lefty) ──
   const shaftLen=Math.round(sc*(isLandscape?vw*0.07:vh*0.07));
   const headLen=Math.round(shaftLen*0.40);
   const headW=headLen*0.50;
-  // Start arrow from left side of box, pointing further left
   const arrowOriginX=isLandscape?br.x:apexX;
   const arrowOriginY=isLandscape?apexY:br.y;
   const aStartX=arrowOriginX+Math.cos(fwdAngle)*shaftLen*0.3;
@@ -580,7 +623,6 @@ function drawFrame(){
   }
 
   if(tracking||capturedFrames.length>0){
-    // Show cone ROI bounding box outline (replaces old strip lines)
     if(debugMode&&coneOrigin){
       const roi=getConeROI(vw,vh);ctx.save();
       ctx.strokeStyle='rgba(0,200,255,0.5)';ctx.lineWidth=lw*0.7;
@@ -593,7 +635,6 @@ function drawFrame(){
     }
   }
 
-  // ── CONE + ARROW (always shown when camera active) ──
   if(video.videoWidth&&video.videoHeight){drawConeAndArrow(vw,vh,t);}
 
   if(capturedFrames.length>0){
@@ -610,7 +651,9 @@ function reset(){
   tracking=false;
   if(trackingLoopId!==null){if('requestVideoFrameCallback' in HTMLVideoElement.prototype)video.cancelVideoFrameCallback(trackingLoopId);else cancelAnimationFrame(trackingLoopId);trackingLoopId=null;}
   referenceFrame=null;capturedFrames=[];kalmanFilter=null;lastKnownPosition=null;lockedRadius=null;ballTemplate=null;
-  missedFrames=0;lastCaptureTime=0;framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;lastDebugBlobs=[];lastDebugGrid=null;
+  missedFrames=0;lastCaptureTime=0;framesSinceFirstDetect=0;coneOrigin=null;ballInFlight=false;
+  flightVelocity={x:0,y:0};
+  lastDebugBlobs=[];lastDebugGrid=null;
   ctx.clearRect(0,0,overlay.width,overlay.height);detectionBox.classList.remove('detecting','locked');metricsPanel.classList.remove('show');
   btnCaptureRef.disabled=false;btnStartTracking.disabled=true;updateMetrics(0,null,null,null);setStatus('Ready to Capture\nPress CAPTURE REFERENCE');showToast('🔄 Reset');
 }
